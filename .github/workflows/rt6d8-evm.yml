@@ -7,6 +7,8 @@ on:
       - 'scripts/rt6d7-issuer-rotation-evm.mjs'
       - 'package.json'
       - 'package-lock.json'
+      - 'tests/rt6d8-abi-bytecode-compare.mjs'
+      - 'tests/baselines/XPPolicyV04.rt6d7.sol'
       - '.github/workflows/rt6d8-evm.yml'
 jobs:
   signed-evm:
@@ -47,6 +49,9 @@ jobs:
       - name: Install locked EVM dependencies
         working-directory: cookr
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Compare baseline and patched ABI bytecode and storage
+        working-directory: cookr
+        run: node tests/rt6d8-abi-bytecode-compare.mjs
       - name: Run signed EVM lifecycle scenarios
         working-directory: cookr
         env:

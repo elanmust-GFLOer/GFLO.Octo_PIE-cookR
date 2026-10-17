@@ -60,6 +60,8 @@ contract XPPolicyV04SourceBound is EIP712 {
     mapping(bytes32 => Rule) public rules;
     mapping(bytes32 => mapping(address => bool)) public ruleAttestors;
     mapping(bytes32 => Grant) public grants;
+    // Bind pending grants to the source authorization epoch at submission.
+    mapping(bytes32 => uint64) public grantSourceEpoch;
     mapping(bytes32 => bool) public usedEvents;
     mapping(bytes32 => bool) public usedEvidence;
     mapping(bytes32 => bool) public usedProofNonces;
@@ -187,6 +189,7 @@ contract XPPolicyV04SourceBound is EIP712 {
         _consumeReplay(proof,attestor,approval);
         uint64 deadline=uint64(block.timestamp+CHALLENGE_PERIOD);
         grants[claimId]=Grant(proof.recipient,proof.ruleId,amount,deadline,msg.sender,attestor,Status.PENDING);
+        grantSourceEpoch[claimId]=ruleSources[proof.ruleId].epoch;
         emit GrantPending(claimId,proof.recipient,attestor,amount,deadline);
     }
 
@@ -209,6 +212,8 @@ contract XPPolicyV04SourceBound is EIP712 {
         if(paused) revert Paused();
         Grant storage grant=grants[claimId];
         if(grant.status!=Status.PENDING) revert BadGrantStatus();
+        SourceConfig memory source=ruleSources[grant.ruleId];
+        if(!source.active || source.epoch!=grantSourceEpoch[claimId]) revert InvalidSource();
         if(block.timestamp<grant.finalizesAt) revert TooEarly();
         grant.status=Status.VALID;
         validEarnedXP[grant.recipient]+=grant.amount;

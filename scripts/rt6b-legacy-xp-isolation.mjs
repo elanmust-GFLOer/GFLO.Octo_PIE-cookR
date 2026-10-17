@@ -106,7 +106,8 @@ const beforeXP=(await view("core",core,"getIdentity",[alice])).xp;
 const beforeStake=await view("gas",gas,"getStake",[alice]);
 // Snapshot only ABI-backed state present in the legacy variant actually compiled.
 const beforeAccumulated=await view("gas",gas,"getAccumulatedXP",[alice]);
-// Actual public Solidity mapping getter: epochXP(address,uint256). Timestamp is 10000 seconds, epoch=0.\nconst beforeEpoch=await view("gas",gas,"epochXP",[alice,10000n/604800n]);
+// Actual public Solidity mapping getter: epochXP(address,uint256). Timestamp is 10000 seconds, epoch=0.
+const beforeEpoch=await view("gas",gas,"epochXP",[alice,10000n/604800n]);
 const beforeAliceBalance=await view("token",token,"balanceOf",[alice]);
 const beforePoolBalance=await view("token",token,"balanceOf",[gas]);
 const rejectedOwner=await send("deployer","gas",gas,"rewardXP",[alice,amount],0);

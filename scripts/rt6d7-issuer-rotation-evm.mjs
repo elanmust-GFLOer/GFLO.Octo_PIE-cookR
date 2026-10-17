@@ -88,7 +88,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=11;
+let n=0;const N=14;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO RED TEAM 6D.7 — GOVERNANCE SOURCE ISSUER ROTATION ATTACK ===");
 console.log("Solc:",solc.version());
@@ -339,6 +339,37 @@ await check("RT6D8-01 revoked PENDING source approval cannot finalize or credit 
  assert.equal(await read("registry",registry,"totalXP",[account]),before);
  assert.equal((await read("xp",xp,"grants",[pendingClaim]))[7],1n);
 });
+async function pendingForRT6D8(suffix,day,ttlDays=5n){
+ atDay(day);
+ const p=[account,rule,id("RT6D8_EVENT_"+suffix),id("RT6D8_EVIDENCE_"+suffix),BigInt(1000+day),
+  activeTimestamp,activeTimestamp+ttlDays*86400n];
+ const digest=await read("xp",xp,"proofDigest",[p]);
+ await auth(digest,id("RT6D8_KEY_"+suffix),activeTimestamp+ttlDays*86400n);
+ const claim=await grantFromReceipt(await send("verifier","xp",xp,"submit",[p,bound,"0x"]));
+ return {claim,digest,baseline:await read("registry",registry,"totalXP",[account])};
+}
+async function rejectedFinalizationAt(day,item){
+ atDay(day);
+ await send("outsider","xp",xp,"finalize",[item.claim],0);
+ assert.equal(await read("registry",registry,"totalXP",[account]),item.baseline);
+ assert.equal((await read("xp",xp,"grants",[item.claim]))[7],1n);
+}
+await check("RT6D8-02 disabled issuer blocks PENDING finalization",async()=>{
+ const item=await pendingForRT6D8("ISSUER_DISABLED",11);
+ await admin("bound",bound,"setIssuer",[sourceIssuer.address,false]);
+ await rejectedFinalizationAt(14,item);
+ await admin("bound",bound,"setIssuer",[sourceIssuer.address,true]);
+});
+await check("RT6D8-03 source pause blocks PENDING finalization",async()=>{
+ const item=await pendingForRT6D8("SOURCE_PAUSED",15);
+ await admin("bound",bound,"setPaused",[true]);
+ await rejectedFinalizationAt(18,item);
+ await admin("bound",bound,"setPaused",[false]);
+});
+await check("RT6D8-04 expired approval blocks PENDING finalization",async()=>{
+ const item=await pendingForRT6D8("SOURCE_EXPIRED",19,1n);
+ await rejectedFinalizationAt(22,item);
+});
 await check("RT6D7-10 Safe revocation and Registry pause still fail closed",async()=>{
  await admin("xp",xp,"revoke",[claimId,id("RT6D5_GOVERNANCE_REVOCATION")]);
  assert.equal(await read("registry",registry,"totalXP",[account]),25n);
@@ -349,5 +380,5 @@ await check("RT6D7-10 Safe revocation and Registry pause still fail closed",asyn
  await send("outsider","gate",gate,"requireEffectiveTier",[account,1],0);
 });
 assert.equal(n,N);
-console.log("RED TEAM 6D.7 — 10/10 signed EVM scenarios executed.");
+console.log("RED TEAM 6D.7 + 6D.8 — 14/14 signed EVM scenarios executed.");
 console.log("RT6C HIGH reproduced: Safe can approve colluding issuer who attests fictional completion even with pinned V04. Revocation required; no audit.");

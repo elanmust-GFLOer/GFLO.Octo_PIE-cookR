@@ -1,4 +1,4 @@
-name: RT6D8 signed EVM regression (experimental)
+name: RT6D8 signed EVM regression (locked npm ci)
 on:
   workflow_dispatch:
   pull_request:

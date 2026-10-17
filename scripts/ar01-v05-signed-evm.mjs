@@ -84,7 +84,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=16;
+let n=0;const N=19;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V05 MULTI-SOURCE SIGNED EVM REGRESSION ===");
 console.log("Solc:",solc.version());
@@ -405,6 +405,49 @@ await check("AR01-05F: reactivation increments epoch; stale pending grant stays 
  assert.equal(await read("registry",registry,"totalXP",[account]),25n);
  assert.equal(await read("gate",gate,"effectiveTier",[account]),0n);
 });
+await check("AR01-05F: Registry emergency pause and recovery preserve canonical XP and tier",async()=>{
+ const before=await read("registry",registry,"totalXP",[account]);
+ const supply=await read("token",token,"totalSupply");
+ assert.equal(before,25n);
+ await admin("registry",registry,"setPaused",[true]);
+ await assert.rejects(()=>read("registry",registry,"totalXP",[account]));
+ await assert.rejects(()=>read("gate",gate,"effectiveTier",[account]));
+ await admin("registry",registry,"setPaused",[false]);
+ assert.equal(await read("registry",registry,"totalXP",[account]),before);
+ assert.equal(await read("gate",gate,"effectiveTier",[account]),0n);
+ assert.equal(await read("token",token,"totalSupply"),supply);
+});
+await check("AR01-05F: failed incident operations preserve quota, nullifiers, XP and supply",async()=>{
+ atDay(56);
+ const p4=[account,rule,id("V05_FAILED_INCIDENT_EVENT"),id("V05_FAILED_INCIDENT_EVIDENCE"),785n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const a=await approval(p4,sourceId,issuerWallet);
+ const approvals=[a,a];
+ const claims=await read("xp",xp,"claimsPerRule",[account,rule]);
+ const xpBefore=await read("xp",xp,"validEarnedXP",[account]);
+ const supply=await read("token",token,"totalSupply");
+ const day=activeTimestamp/86400n,week=activeTimestamp/(7n*86400n);
+ const daily=await read("xp",xp,"dailyXP",[account,day]);
+ const weekly=await read("xp",xp,"weeklyXP",[account,week]);
+ await send("verifier","xp",xp,"submit",[p4,attestor,await proofSignature(p4),approvals],0);
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),claims);
+ assert.equal(await read("xp",xp,"validEarnedXP",[account]),xpBefore);
+ assert.equal(await read("xp",xp,"dailyXP",[account,day]),daily);
+ assert.equal(await read("xp",xp,"weeklyXP",[account,week]),weekly);
+ assert.equal(await read("xp",xp,"usedEvents",[p4[2]]),false);
+ assert.equal(await read("xp",xp,"usedEvidence",[p4[3]]),false);
+ assert.equal(await read("token",token,"totalSupply"),supply);
+});
+await check("AR01-05F: unauthorized source governance and emergency toggles revert",async()=>{
+ const cfg=await read("xp",xp,"sources",[rule,sourceB]);
+ const beforeXP=await read("registry",registry,"totalXP",[account]);
+ await send("outsider","xp",xp,"configureSource",[rule,sourceB,issuer,groupA,true],0);
+ await send("outsider","xp",xp,"setPaused",[true],0);
+ await send("outsider","registry",registry,"setPaused",[true],0);
+ assert.deepEqual(await read("xp",xp,"sources",[rule,sourceB]),cfg);
+ assert.equal(await read("xp",xp,"paused"),false);
+ assert.equal(await read("registry",registry,"paused"),false);
+ assert.equal(await read("registry",registry,"totalXP",[account]),beforeXP);
+});
 assert.equal(n,N);
-console.log("16/16 V05 SIGNED EVM RED TEAM EXECUTED");
+console.log("19/19 V05 SIGNED EVM RED TEAM EXECUTED");
 console.log("Scope: signer independence only; real-world evidence truth and collusion remain out of scope.");

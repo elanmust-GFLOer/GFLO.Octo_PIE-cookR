@@ -286,6 +286,8 @@ await check("Paused source and expired source approval fail closed",async()=>{
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),0n);
 });
 await check("PENDING source revocation blocks finalize permanently across issuer reactivation",async()=>{
+ // New accounting day and week: isolate this scenario from prior 1000 XP reservations.
+ atDay(7);
  const nextIssuer=new EthersWallet("0x"+"b1".repeat(32));
  const pendingRule=id("AR01_03B_PENDING_REVOCATION_RULE");
  await admin("xp",xp,"registerRule",[pendingRule,1000,3]);
@@ -297,7 +299,7 @@ await check("PENDING source revocation blocks finalize permanently across issuer
  const pendingEpoch=await read("xp",xp,"grantSourceEpoch",[pendingId]);
  assert.ok(pendingEpoch>0n);
  await admin("xp",xp,"configureSource",[pendingRule,sourceId,nextIssuer.address,false]);
- atDay(7);
+ atDay(11);
  const before=await read("xp",xp,"validEarnedXP",[account]);
  await send("outsider","xp",xp,"finalize",[pendingId],0);
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),before);

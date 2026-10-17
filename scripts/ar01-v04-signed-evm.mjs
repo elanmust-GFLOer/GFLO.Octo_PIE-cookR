@@ -84,7 +84,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=11;
+let n=0;const N=12;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V04 SOURCE-BOUND SIGNED EVM REGRESSION ===");
 console.log("Solc:",solc.version());
@@ -285,6 +285,23 @@ await check("Paused source and expired source approval fail closed",async()=>{
  await send("verifier","xp",xp,"submit",[expired,attestor,await proofSignature(expired),await sourceSignature(expired,nextIssuer)],0);
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),0n);
 });
+await check("PENDING source revocation blocks finalize permanently across issuer reactivation",async()=>{
+ const nextIssuer=new EthersWallet("0x"+"b1".repeat(32));
+ const pendingProof=[account,rule,id("REVOKED_PENDING_EVENT"),id("REVOKED_PENDING_EVIDENCE"),904n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const receipt=await send("verifier","xp",xp,"submit",[pendingProof,attestor,await proofSignature(pendingProof),await sourceSignature(pendingProof,nextIssuer)]);
+ const pendingId=await grantFromReceipt(receipt);
+ const pendingEpoch=await read("xp",xp,"grantSourceEpoch",[pendingId]);
+ assert.ok(pendingEpoch>0n);
+ await admin("xp",xp,"configureSource",[rule,sourceId,nextIssuer.address,false]);
+ atDay(7);
+ const before=await read("xp",xp,"validEarnedXP",[account]);
+ await send("outsider","xp",xp,"finalize",[pendingId],0);
+ assert.equal(await read("xp",xp,"validEarnedXP",[account]),before);
+ await admin("xp",xp,"configureSource",[rule,sourceId,nextIssuer.address,true]);
+ await send("outsider","xp",xp,"finalize",[pendingId],0);
+ assert.equal(await read("xp",xp,"validEarnedXP",[account]),before);
+ assert.equal((await read("xp",xp,"grants",[pendingId])).status,1n);
+});
 assert.equal(n,N);
-console.log("11/11 V04 SOURCE-BOUND SIGNED EVM REGRESSION EXECUTED");
+console.log("12/12 V04 SOURCE-BOUND SIGNED EVM REGRESSION EXECUTED");
 console.log("Scope: source authorization enforced for this fixture; independent issuer compromise and real-world event truth remain out of scope.");

@@ -192,8 +192,7 @@ async function rejectedProof(proofData,signer=bound,sig="0x",who="verifier"){
 const sigMagic="0x1626ba7e",sigInvalid="0xffffffff";
 const proofDigest=await read("xp",xp,"proofDigest",[proof]);
 const eventKey=id("RT6D5_SOURCE_EVENT_ORIGIN_1");
-const approvalExpiry=6000n;
-let claimId;
+const approvalExpiry=6000n; // claimId declared in shared fixture
 
 await check("RT6D5-01 Safe config: 2/3, XPPolicy fresh, only source-bound attestor authorized",async()=>{
  assert.equal(await read("safe",proxy,"getThreshold"),2n);

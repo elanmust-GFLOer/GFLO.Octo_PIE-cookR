@@ -183,6 +183,14 @@ contract XPPolicyV05MultiSource is EIP712 {
         g.status=Status.REVOKED;
         emit GrantRevoked(claimId,g.recipient,g.amount,reason);
     }
+    /// @notice Canonical XP interface required by TrustedXPSourceRegistryV02.
+    /// @dev Genesis identity XP plus finalized and non-revoked policy XP.
+    function totalXP(address wallet) external view returns (uint64) {
+        IPIEV05.Identity memory identity = pie.getIdentity(wallet);
+        if (!identity.exists) return 0;
+        return identity.xp + validEarnedXP[wallet];
+    }
+
     function grantStatus(bytes32 claimId) external view returns(Status) { return _grants[claimId].status; }
     function grantSources(bytes32 claimId) external view returns(bytes32[2] memory,uint64[2] memory) {
         Grant storage g=_grants[claimId];

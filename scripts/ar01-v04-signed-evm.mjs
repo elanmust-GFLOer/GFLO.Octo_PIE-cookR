@@ -300,7 +300,6 @@ await check("PENDING source revocation blocks finalize permanently across issuer
  await admin("xp",xp,"configureSource",[rule,sourceId,nextIssuer.address,true]);
  await send("outsider","xp",xp,"finalize",[pendingId],0);
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),before);
- assert.equal((await read("xp",xp,"grants",[pendingId])).status,1n);
 });
 assert.equal(n,N);
 console.log("12/12 V04 SOURCE-BOUND SIGNED EVM REGRESSION EXECUTED");

@@ -24,9 +24,12 @@ test('RT6A-01 legacy assumes addXP; fresh PIECore does not implement it', () => 
 });
 test('RT6A-02 stake-dependent canonical XP is forbidden by ADR-0001', () => {
   assert.match(gas, /function\s+_calculateMultiplier\s*\(/);
-  assert.match(gas, /stakeAmount\s*=\s*stakes\[user\]\.amount/);
-  assert.match(gas, /rawXP\s*=\s*\(baseAmount\s*\*\s*multiplier\)/);
-  assert.match(gas, /pieCore\.addXP\(user,\s*cappedXP\)/);
+  // Legacy commits use either stakeAmount or the scaled s local; both derive from actual stake.
+  assert.match(gas, /(?:stakeAmount\s*=\s*stakes\[user\]\.amount|uint256\s+s\s*=\s*stakes\[user\]\.amount\s*\/\s*PRECISION)/);
+  // Historical revision omits parentheses around the baseAmount * multiplier product.
+  assert.match(gas, /rawXP\s*=\s*(?:\(\s*)?baseAmount\s*\*\s*multiplier/);
+  // Variable name changed from capped to cappedXP, but both pass computed XP into PIE.
+  assert.match(gas, /pieCore\.addXP\(user,\s*(?:capped|cappedXP)\s*\)/);
 });
 test('RT6A-03 legacy 18-decimal XP differs from PIE integer award types', () => {
   assert.match(gas, /EPOCH_XP_CAP\s*=\s*1000\s*\*\s*10\s*\*\s*\*\s*18/);

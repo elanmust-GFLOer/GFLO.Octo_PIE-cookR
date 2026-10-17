@@ -84,7 +84,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=17;
+let n=0;const N=18;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V04 SOURCE-BOUND SIGNED EVM REGRESSION ===");
 console.log("Solc:",solc.version());
@@ -410,6 +410,26 @@ await check("Role collision: issuer equals verifier fails closed",async()=>{
  assert.equal(await read("xp",xp,"claimsPerRule",[account,collisionRule]),before);
  assert.equal(await read("xp",xp,"sourceApprovalsUsed",[await read("xp",xp,"sourceDigest",[p])]),false);
 });
+await check("AR01-04: compromised issuer plus authorized attestor can finalize fabricated source event",async()=>{
+ atDay(28);
+ const forgedRule=id("AR01_04_FABRICATED_SOURCE_EVENT_RULE");
+ const compromisedIssuer=new EthersWallet("0x"+"b1".repeat(32));
+ await admin("xp",xp,"registerRule",[forgedRule,1000,3]);
+ await admin("xp",xp,"setAttestor",[forgedRule,attestor,true]);
+ await admin("xp",xp,"configureSource",[forgedRule,sourceId,compromisedIssuer.address,true]);
+ // This event/evidence is deliberately fabricated in the fixture. No off-chain
+ // source verification is performed by V04; signatures only authenticate signers.
+ const fabricated=[account,forgedRule,id("FICTIONAL_OCTOPUSH_COMPLETION"),id("NO_REAL_WORLD_EVIDENCE"),911n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const before=await read("xp",xp,"validEarnedXP",[account]);
+ const receipt=await send("verifier","xp",xp,"submit",[fabricated,attestor,await proofSignature(fabricated),await sourceSignature(fabricated,compromisedIssuer)]);
+ const forgedClaim=await grantFromReceipt(receipt);
+ assert.equal(await read("xp",xp,"validEarnedXP",[account]),before);
+ atDay(31);
+ await send("outsider","xp",xp,"finalize",[forgedClaim]);
+ assert.equal(await read("xp",xp,"validEarnedXP",[account]),before+1000n);
+ assert.equal(await read("registry",registry,"totalXP",[account]),before+1025n);
+ // This is an expected vulnerability demonstration, not a security PASS.
+});
 assert.equal(n,N);
-console.log("17/17 V04 SOURCE-BOUND SIGNED EVM REGRESSION EXECUTED");
+console.log("18/18 V04 SOURCE-BOUND SIGNED EVM REGRESSION EXECUTED");
 console.log("Scope: source authorization enforced for this fixture; independent issuer compromise and real-world event truth remain out of scope.");

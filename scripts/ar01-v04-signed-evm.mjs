@@ -84,7 +84,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=9;
+let n=0;const N=11;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V04 SOURCE-BOUND SIGNED EVM REGRESSION ===");
 console.log("Solc:",solc.version());
@@ -159,7 +159,7 @@ const sourceId=id("GFLO_OCTOPUSH_SOURCE_01");
 const rule=id("RT6C_UNVERIFIED_EVENT_RULE"),event=id("RT6C_FABRICATED_BUILDER_COMPLETION"),evidence=id("RT6C_FAKE_OFFCHAIN_EVIDENCE");
 const proof=[account,rule,event,evidence,777n,0n,172800n];
 let claimId;
-async function sourceSignature(p=proof){const hash=await read("xp",xp,"sourceDigest",[p]);return issuerWallet.signingKey.sign(hash).serialized;}
+async function sourceSignature(p=proof,wallet=issuerWallet){const hash=await read("xp",xp,"sourceDigest",[p]);return wallet.signingKey.sign(hash).serialized;}
 async function proofSignature(p=proof){const hash=await read("xp",xp,"proofDigest",[p]);return attestorWallet.signingKey.sign(hash).serialized;}
 async function grantFromReceipt(receipt){
  for(const log of receipt.receipt.logs){
@@ -261,6 +261,30 @@ await check("Replay after revocation fails and paused Registry fails closed",asy
  await send("outsider","gate",gate,"requireEffectiveTier",[account,1],0);
  assert.equal((await read("core",core,"getIdentity",[account])).tier,1n);
 });
+await check("Issuer rotation invalidates prior epoch approval and old issuer",async()=>{
+ const fresh=[account,rule,id("ROTATION_EVENT"),id("ROTATION_EVIDENCE"),901n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const attSig=await proofSignature(fresh);
+ const oldSig=await sourceSignature(fresh);
+ const nextIssuer=new EthersWallet("0x"+"b1".repeat(32));
+ await admin("xp",xp,"configureSource",[rule,sourceId,nextIssuer.address,true]);
+ await send("verifier","xp",xp,"submit",[fresh,attestor,attSig,oldSig],0);
+ const newSig=await sourceSignature(fresh,nextIssuer);
+ const receipt=await send("verifier","xp",xp,"submit",[fresh,attestor,attSig,newSig]);
+ assert.ok(await grantFromReceipt(receipt));
+ assert.equal(await read("xp",xp,"validEarnedXP",[account]),0n);
+});
+await check("Paused source and expired source approval fail closed",async()=>{
+ const p=[account,rule,id("PAUSED_EVENT"),id("PAUSED_EVIDENCE"),902n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const nextIssuer=new EthersWallet("0x"+"b1".repeat(32));
+ const attSig=await proofSignature(p);
+ const sig=await sourceSignature(p,nextIssuer);
+ await admin("xp",xp,"configureSource",[rule,sourceId,nextIssuer.address,false]);
+ await send("verifier","xp",xp,"submit",[p,attestor,attSig,sig],0);
+ await admin("xp",xp,"configureSource",[rule,sourceId,nextIssuer.address,true]);
+ const expired=[account,rule,id("EXPIRED_EVENT"),id("EXPIRED_EVIDENCE"),903n,0n,1n];
+ await send("verifier","xp",xp,"submit",[expired,attestor,await proofSignature(expired),await sourceSignature(expired,nextIssuer)],0);
+ assert.equal(await read("xp",xp,"validEarnedXP",[account]),0n);
+});
 assert.equal(n,N);
-console.log("9/9 V04 SOURCE-BOUND SIGNED EVM REGRESSION EXECUTED");
+console.log("11/11 V04 SOURCE-BOUND SIGNED EVM REGRESSION EXECUTED");
 console.log("Scope: source authorization enforced for this fixture; independent issuer compromise and real-world event truth remain out of scope.");

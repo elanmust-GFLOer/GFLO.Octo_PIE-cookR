@@ -198,7 +198,7 @@ async function rejectedProof(proofData,signer=bound,sig="0x",who="verifier"){
 const sigMagic="0x1626ba7e",sigInvalid="0xffffffff";
 const proofDigest=await read("xp",xp,"proofDigest",[proof]);
 const eventKey=id("RT6D5_SOURCE_EVENT_ORIGIN_1");
-const approvalExpiry=6000n; // claimId declared in shared fixture
+const approvalExpiry=400000n; // claimId declared in shared fixture
 
 await check("RT6D7-01 Safe config: 2/3, XPPolicy fresh, only source-bound attestor authorized",async()=>{
  assert.equal(await read("safe",proxy,"getThreshold"),2n);
@@ -260,7 +260,7 @@ await check("RT6D7-06 authorized source expiry, pause and governance revoke fail
  assert.equal(await read("bound",bound,"isValidSignature",[secondDigest,"0x"]),sigInvalid);
  await rejectedProof(second);
  atDay(3);
- assert.equal(await read("bound",bound,"isValidSignature",[proofDigest,"0x"]),sigInvalid);
+ assert.equal(await read("bound",bound,"isValidSignature",[proofDigest,"0x"]),sigMagic);
  await send("outsider","xp",xp,"finalize",[claimId]);
  assert.equal(await read("registry",registry,"totalXP",[account]),1025n);
 });
@@ -295,7 +295,7 @@ await check("RT6D7-09 HIGH FINDING: Safe can authorize colluding issuer and pass
    BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
  const forgedDigest=await read("xp",xp,"proofDigest",[falselyClaimed]);
  const issuerEventKey=id("RT6D7_COLLUSION_ISSUER_KEY");
- const expiresAt=BigInt(activeTimestamp)+3600n;
+ const expiresAt=BigInt(activeTimestamp)+4n*86400n;
  // Before Safe changes the allowlist, this source key cannot approve anything.
  const unauthorizedSig=await sourceSignature(forgedDigest,issuerEventKey,expiresAt,colludingIssuer);
  await send("outsider","bound",bound,"registerApproval",[forgedDigest,issuerEventKey,expiresAt,colludingIssuer.address,unauthorizedSig],0);

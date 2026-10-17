@@ -5,7 +5,6 @@ import fs from "node:fs";
 import path from "node:path";
 import {execFileSync} from "node:child_process";
 import {createRequire} from "node:module";
-import {homedir} from "node:os";
 import {join} from "node:path";
 import {createVM,runTx} from "@ethereumjs/vm";
 import {createLegacyTx} from "@ethereumjs/tx";
@@ -13,20 +12,22 @@ import {createBlock} from "@ethereumjs/block";
 import {Common,Mainnet,Hardfork} from "@ethereumjs/common";
 import {createAccount,createAddressFromPrivateKey,createAddressFromString,hexToBytes,bytesToHex} from "@ethereumjs/util";
 
-const repo=join(homedir(),"gflo-pie"),req=createRequire(join(repo,"package.json"));
+const repo=process.env.GFLO_PIE_ROOT;
+if(!repo || !fs.existsSync(join(repo,"package.json"))) throw Error("GFLO_PIE_ROOT must point to checked-out gflo-pie");
+const req=createRequire(join(repo,"package.json"));
 const localReq=createRequire(import.meta.url);
 const solc=req("solc"),{Interface,Wallet,getCreateAddress,ZeroAddress,parseUnits,id,keccak256}=req("ethers");
-const root=join(process.cwd(),"node_modules/@safe-global/safe-smart-account/build/artifacts/contracts");
+const root=join(path.dirname(localReq.resolve("@safe-global/safe-smart-account/package.json")),"build/artifacts/contracts");
 const artifacts={
  safe:JSON.parse(fs.readFileSync(join(root,"Safe.sol/Safe.json"),"utf8")),
  factory:JSON.parse(fs.readFileSync(join(root,"proxies/SafeProxyFactory.sol/SafeProxyFactory.json"),"utf8"))
 };
 const files={"XPPolicyV03.sol":"XPPolicyV03","PIECoreIgnitionV01.sol":"PIECoreIgnitionV01","TrustedXPSourceRegistryV02.sol":"TrustedXPSourceRegistryV02","GFLOIgnitionV01.sol":"GFLOIgnitionV01","GFLOFixedSupplyV01.sol":"GFLOFixedSupplyV01","EffectiveTierGateV01.sol":"EffectiveTierGateV01"};
-const sources=Object.fromEntries(Object.keys(files).map(f=>[f,{content:execFileSync("git",["show","origin/feature/pie-core-v0.2:contracts/"+f],{cwd:repo,encoding:"utf8"})}]));
+const sources=Object.fromEntries(Object.keys(files).map(f=>[f,{content:fs.readFileSync(join(repo,"contracts",f),"utf8")}]));
 // Remove V03 from the compilation unit: V04 declares the same IPIEForVerifiedXP interface.
 delete sources["XPPolicyV03.sol"];
-sources["XPPolicyV04.sol"]={content:fs.readFileSync(join(homedir(),"GFLO.Octo_PIE-cookR/contracts/XPPolicyV04.sol"),"utf8")};
-sources["GFLOSourceBoundAttestorV01.sol"]={content:fs.readFileSync(join(homedir(),"GFLO.Octo_PIE-cookR/contracts/GFLOSourceBoundAttestorV01.sol"),"utf8")};
+sources["XPPolicyV04.sol"]={content:fs.readFileSync(join(path.dirname(new URL(import.meta.url).pathname),"../contracts/XPPolicyV04.sol"),"utf8")};
+sources["GFLOSourceBoundAttestorV01.sol"]={content:fs.readFileSync(join(path.dirname(new URL(import.meta.url).pathname),"../contracts/GFLOSourceBoundAttestorV01.sol"),"utf8")};
 const ozRoot=path.dirname(localReq.resolve("@openzeppelin/contracts/package.json"));
 const compiled=JSON.parse(solc.compile(JSON.stringify({language:"Solidity",sources,settings:{optimizer:{enabled:true,runs:200},evmVersion:"cancun",outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}}),{import:(name)=>{
  try{

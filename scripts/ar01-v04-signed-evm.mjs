@@ -337,7 +337,7 @@ await check("EIP-712 rejects foreign chainId signatures without consuming source
  await admin("xp",xp,"setAttestor",[foreignRule,attestor,true]);
  await admin("xp",xp,"configureSource",[foreignRule,sourceId,currentIssuer.address,true]);
  const p=[account,foreignRule,id("FOREIGN_CHAIN_EVENT"),id("FOREIGN_CHAIN_EVIDENCE"),906n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
- const cfg=await read("xp",xp,"ruleSources",[foreignRule]);
+ const cfg=abi.xp.decodeFunctionResult("ruleSources",(await (async()=>{const viewer=createAddressFromString("0x"+"fe".repeat(20));const result=await vm.evm.runCall({caller:viewer,to:createAddressFromString(xp),isStatic:true,gasLimit:2000000n,data:hexToBytes(abi.xp.encodeFunctionData("ruleSources",[foreignRule]))});if(result.execResult.exceptionError)throw Error("ruleSources read failed");return bytesToHex(result.execResult.returnValue);})()));
  const domain={name:"GFLO XP Evidence",version:"4",chainId:31337,verifyingContract:xp};
  const sourceTypes={GFLOSourceApproval:[
  {name:"sourceId",type:"bytes32"},{name:"recipient",type:"address"},{name:"ruleId",type:"bytes32"},

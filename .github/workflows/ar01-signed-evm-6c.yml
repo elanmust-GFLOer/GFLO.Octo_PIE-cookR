@@ -46,7 +46,8 @@ jobs:
       - name: Prepare isolated fixture paths
         run: |
           mkdir -p "$HOME/gflo-pie" "$HOME/GasFeeLoop-"
-          printf '{"name":"gflo-pie-fixture","type":"module"}\\n' > "$HOME/gflo-pie/package.json"
+          cp "$GITHUB_WORKSPACE/_pie/package.json" "$HOME/gflo-pie/package.json"
+          node -e 'JSON.parse(require("node:fs").readFileSync(process.env.HOME+"/gflo-pie/package.json","utf8"))'
           ln -s "$GITHUB_WORKSPACE/_evm_deps/node_modules" "$HOME/gflo-pie/node_modules"
           ln -s "$GITHUB_WORKSPACE/_gas/contracts" "$HOME/GasFeeLoop-/contracts"
           git -C "$HOME/gflo-pie" init

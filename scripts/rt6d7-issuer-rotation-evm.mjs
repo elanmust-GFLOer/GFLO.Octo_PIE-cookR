@@ -209,7 +209,7 @@ await check("RT6D7-01 Safe config: 2/3, XPPolicy fresh, only source-bound attest
  await admin("registry",registry,"activatePolicy");
  await admin("registry",registry,"setPaused",[false]);
  await send("alice","core",core,"createIdentity",[3]);
- await admin("xp",xp,"registerRule",[rule,1000,4]);
+ await admin("xp",xp,"registerRule",[rule,1000,8]);
  await admin("xp",xp,"setVerifierRole",[verifierAddress,2]);
  await admin("bound",bound,"setIssuer",[sourceIssuer.address,true]);
  assert.equal(await read("xp",xp,"sourceBoundAttestor"),bound);

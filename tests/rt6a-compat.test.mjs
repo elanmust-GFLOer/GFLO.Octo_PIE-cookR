@@ -29,7 +29,7 @@ test('RT6A-02 stake-dependent canonical XP is forbidden by ADR-0001', () => {
   assert.match(gas, /pieCore\.addXP\(user,\s*cappedXP\)/);
 });
 test('RT6A-03 legacy 18-decimal XP differs from PIE integer award types', () => {
-  assert.match(gas, /EPOCH_XP_CAP\s*=\s*1000\s*\*\s*10\s*\*\s*18/);
+  assert.match(gas, /EPOCH_XP_CAP\s*=\s*1000\s*\*\s*10\s*\*\s*\*\s*18/);
   assert.match(policy, /struct\s+Rule\s*\{\s*uint16\s+amount/);
   assert.match(policy, /mapping\(address\s*=>\s*uint64\)\s+public\s+validEarnedXP/);
 });

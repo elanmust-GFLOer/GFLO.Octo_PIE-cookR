@@ -84,7 +84,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=6;
+let n=0;const N=8;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V05 MULTI-SOURCE SIGNED EVM REGRESSION ===");
 console.log("Solc:",solc.version());
@@ -251,6 +251,40 @@ await check("AR01-05C: tampered evidence rejects both signatures without state m
  assert.ok(await grantFromReceipt(receipt));
  assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),beforeClaims+1n);
 });
+await check("AR01-05C: second source signs different evidence and cannot satisfy quorum",async()=>{
+ atDay(21);
+ const original=[account,rule,id("V05_SECOND_SOURCE_EVENT"),id("V05_SECOND_SOURCE_EVIDENCE"),780n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const altered=[...original];altered[3]=id("V05_SECOND_SOURCE_DIFFERENT_EVIDENCE");
+ const a=await approval(original,sourceId,issuerWallet);
+ const b=await approval(altered,sourceB,secondIssuer);
+ const mismatched=[a,b].sort((x,y)=>x[0].localeCompare(y[0]));
+ const before=await read("xp",xp,"claimsPerRule",[account,rule]);
+ await send("verifier","xp",xp,"submit",[original,attestor,await proofSignature(original),mismatched],0);
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),before);
+ assert.equal(await read("xp",xp,"validEarnedXP",[account]),1000n);
+ assert.equal(await read("xp",xp,"usedEvents",[original[2]]),false);
+ const correct=[a,await approval(original,sourceB,secondIssuer)].sort((x,y)=>x[0].localeCompare(y[0]));
+ const receipt=await send("verifier","xp",xp,"submit",[original,attestor,await proofSignature(original),correct]);
+ assert.ok(await grantFromReceipt(receipt));
+});
+await check("AR01-05C: EIP-712 foreign contract domain rejects source approval",async()=>{
+ atDay(28);
+ const original=[account,rule,id("V05_FOREIGN_DOMAIN_EVENT"),id("V05_FOREIGN_DOMAIN_EVIDENCE"),781n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const sourceA=await approval(original,sourceId,issuerWallet);
+ const sourceCfg=await read("xp",xp,"sources",[rule,sourceB]);
+ const cfgCall=await vm.evm.runCall({caller:createAddressFromString("0x"+"fe".repeat(20)),to:createAddressFromString(xp),isStatic:true,gasLimit:2000000n,data:hexToBytes(abi.xp.encodeFunctionData("sources",[rule,sourceB]))});
+ const cfg=abi.xp.decodeFunctionResult("sources",bytesToHex(cfgCall.execResult.returnValue));
+ const xpOther=(await deploy("deployer","xp",[core,proxy])).address;
+ const foreignHash=await read("xp",xpOther,"sourceDigest",[original,sourceB,cfg[2]]);
+ const foreignApproval=[sourceB,cfg[2],secondIssuer.signingKey.sign(foreignHash).serialized];
+ const approvals=[sourceA,foreignApproval].sort((x,y)=>x[0].localeCompare(y[0]));
+ const before=await read("xp",xp,"claimsPerRule",[account,rule]);
+ await send("verifier","xp",xp,"submit",[original,attestor,await proofSignature(original),approvals],0);
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),before);
+ assert.equal(await read("xp",xp,"usedEvents",[original[2]]),false);
+ const valid=[sourceA,await approval(original,sourceB,secondIssuer)].sort((x,y)=>x[0].localeCompare(y[0]));
+ assert.ok(await grantFromReceipt(await send("verifier","xp",xp,"submit",[original,attestor,await proofSignature(original),valid])));
+});
 assert.equal(n,N);
-console.log("6/6 V05 SIGNED EVM RED TEAM EXECUTED");
+console.log("8/8 V05 SIGNED EVM RED TEAM EXECUTED");
 console.log("Scope: signer independence only; real-world evidence truth and collusion remain out of scope.");

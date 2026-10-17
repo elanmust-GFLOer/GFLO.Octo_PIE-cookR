@@ -1,0 +1,59 @@
+name: AR01 V05 Signed EVM Red Team
+on:
+  push:
+    branches:
+      - audit/ar01-contract-inventory-20261017
+    paths:
+      - '.github/workflows/ar01-v05-signed-evm.yml'
+      - 'scripts/ar01-v05-signed-evm.mjs'
+      - 'contracts/XPPolicyV05MultiSource.sol'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  signed-evm-v05:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout PIE
+        uses: actions/checkout@v4
+        with:
+          repository: elanmust-GFLOer/gflo-pie
+          ref: feature/pie-core-v0.2
+          path: _pie
+          persist-credentials: false
+      - name: Checkout legacy GasFeeLoop
+        uses: actions/checkout@v4
+        with:
+          repository: elanmust-GFLOer/GasFeeLoop-
+          path: _gas
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Record exact sources
+        run: |
+          git rev-parse HEAD
+          git -C _pie rev-parse HEAD
+          git -C _gas rev-parse HEAD
+          node --version
+      - name: Install isolated EVM fixture dependencies
+        run: |
+          mkdir -p _evm_deps
+          cd _evm_deps
+          npm init -y
+          npm install --no-save --no-package-lock --ignore-scripts @ethereumjs/vm@10 @ethereumjs/tx@10 @ethereumjs/block@10 @ethereumjs/common@10 @ethereumjs/util@10 @openzeppelin/contracts@5 @safe-global/safe-smart-account@1.5 ethers@6 solc@0.8.34
+      - name: Prepare isolated fixture paths
+        run: |
+          mkdir -p "$HOME/gflo-pie" "$HOME/GasFeeLoop-"
+          cp "$GITHUB_WORKSPACE/_pie/package.json" "$HOME/gflo-pie/package.json"
+          node -e 'JSON.parse(require("node:fs").readFileSync(process.env.HOME+"/gflo-pie/package.json","utf8"))'
+          ln -s "$GITHUB_WORKSPACE/_evm_deps/node_modules" "$HOME/gflo-pie/node_modules"
+          ln -s "$GITHUB_WORKSPACE/_gas/contracts" "$HOME/GasFeeLoop-/contracts"
+          git -C "$HOME/gflo-pie" init
+          git -C "$HOME/gflo-pie" remote add origin "https://github.com/elanmust-GFLOer/gflo-pie.git"
+          git -C "$HOME/gflo-pie" fetch --depth=1 origin feature/pie-core-v0.2
+          ln -s "$GITHUB_WORKSPACE/_evm_deps/node_modules" node_modules
+      - name: Execute signed local EVM red team
+        run: node scripts/ar01-v05-signed-evm.mjs

@@ -84,7 +84,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=14;
+let n=0;const N=17;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V04 SOURCE-BOUND SIGNED EVM REGRESSION ===");
 console.log("Solc:",solc.version());
@@ -352,6 +352,64 @@ await check("EIP-712 rejects foreign chainId signatures without consuming source
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),before);
  assert.equal(await read("xp",xp,"sourceApprovalsUsed",[await read("xp",xp,"sourceDigest",[p])]),false);
 });
+await check("Integrity: five bound proof fields reject stale signatures and preserve state",async()=>{
+ atDay(21);
+ const integrityRule=id("AR01_03D_INTEGRITY_RULE");
+ const issuerD=new EthersWallet("0x"+"b1".repeat(32));
+ await admin("xp",xp,"registerRule",[integrityRule,1000,3]);
+ await admin("xp",xp,"setAttestor",[integrityRule,attestor,true]);
+ await admin("xp",xp,"configureSource",[integrityRule,sourceId,issuerD.address,true]);
+ const base=[account,integrityRule,id("INTEGRITY_EVENT"),id("INTEGRITY_EVIDENCE"),907n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const attSig=await proofSignature(base),srcSig=await sourceSignature(base,issuerD);
+ const beforeXP=await read("xp",xp,"validEarnedXP",[account]);
+ const day=activeTimestamp/86400n,week=activeTimestamp/(7n*86400n);
+ const beforeDaily=await read("xp",xp,"dailyXP",[account,day]);
+ const beforeWeekly=await read("xp",xp,"weeklyXP",[account,week]);
+ const beforeClaims=await read("xp",xp,"claimsPerRule",[account,integrityRule]);
+ const variants=[
+  [senders.outsider.address.toString(),...base.slice(1)],
+  [base[0],id("DIFFERENT_RULE"),...base.slice(2)],
+  [base[0],base[1],id("DIFFERENT_EVENT"),...base.slice(3)],
+  [base[0],base[1],base[2],id("DIFFERENT_EVIDENCE"),...base.slice(4)],
+  [...base.slice(0,4),908n,...base.slice(5)]
+ ];
+ for(const p of variants){
+  await send("verifier","xp",xp,"submit",[p,attestor,attSig,srcSig],0);
+  assert.equal(await read("xp",xp,"validEarnedXP",[account]),beforeXP);
+  assert.equal(await read("xp",xp,"dailyXP",[account,day]),beforeDaily);
+  assert.equal(await read("xp",xp,"weeklyXP",[account,week]),beforeWeekly);
+  assert.equal(await read("xp",xp,"claimsPerRule",[account,integrityRule]),beforeClaims);
+  assert.equal(await read("xp",xp,"sourceApprovalsUsed",[await read("xp",xp,"sourceDigest",[base])]),false);
+  assert.equal(await read("xp",xp,"usedEvents",[base[2]]),false);
+  assert.equal(await read("xp",xp,"usedEvidence",[base[3]]),false);
+ }
+ const receipt=await send("verifier","xp",xp,"submit",[base,attestor,attSig,srcSig]);
+ assert.ok(await grantFromReceipt(receipt));
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,integrityRule]),beforeClaims+1n);
+});
+await check("Role collision: issuer equals attestor fails closed",async()=>{
+ const collisionRule=id("AR01_03D_ATTESTOR_COLLISION");
+ await admin("xp",xp,"registerRule",[collisionRule,1000,3]);
+ await admin("xp",xp,"setAttestor",[collisionRule,attestor,true]);
+ await admin("xp",xp,"configureSource",[collisionRule,sourceId,attestor,true]);
+ const p=[account,collisionRule,id("ATTESTOR_COLLISION_EVENT"),id("ATTESTOR_COLLISION_EVIDENCE"),909n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const before=await read("xp",xp,"claimsPerRule",[account,collisionRule]);
+ await send("verifier","xp",xp,"submit",[p,attestor,await proofSignature(p),await sourceSignature(p,attestorWallet)],0);
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,collisionRule]),before);
+ assert.equal(await read("xp",xp,"sourceApprovalsUsed",[await read("xp",xp,"sourceDigest",[p])]),false);
+});
+await check("Role collision: issuer equals verifier fails closed",async()=>{
+ const collisionRule=id("AR01_03D_VERIFIER_COLLISION");
+ await admin("xp",xp,"registerRule",[collisionRule,1000,3]);
+ await admin("xp",xp,"setAttestor",[collisionRule,attestor,true]);
+ await admin("xp",xp,"configureSource",[collisionRule,sourceId,verifierAddress,true]);
+ const p=[account,collisionRule,id("VERIFIER_COLLISION_EVENT"),id("VERIFIER_COLLISION_EVIDENCE"),910n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const verifierWallet=new EthersWallet("0x"+"a5".repeat(32));
+ const before=await read("xp",xp,"claimsPerRule",[account,collisionRule]);
+ await send("verifier","xp",xp,"submit",[p,attestor,await proofSignature(p),await sourceSignature(p,verifierWallet)],0);
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,collisionRule]),before);
+ assert.equal(await read("xp",xp,"sourceApprovalsUsed",[await read("xp",xp,"sourceDigest",[p])]),false);
+});
 assert.equal(n,N);
-console.log("14/14 V04 SOURCE-BOUND SIGNED EVM REGRESSION EXECUTED");
+console.log("17/17 V04 SOURCE-BOUND SIGNED EVM REGRESSION EXECUTED");
 console.log("Scope: source authorization enforced for this fixture; independent issuer compromise and real-world event truth remain out of scope.");

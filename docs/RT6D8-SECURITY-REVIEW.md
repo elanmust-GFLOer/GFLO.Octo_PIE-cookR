@@ -31,3 +31,11 @@ Evidence: https://github.com/elanmust-GFLOer/GFLO.Octo_PIE-cookR/actions/runs/39
 - [ ] Mainnet/testnet deployment review (separate decision)
 
 No audit, no deployment, no authorization to issue real-world XP follows from this document.
+
+## Measured EVM CI evidence (2026-10-17)
+- Signed EVM run: https://github.com/elanmust-GFLOer/GFLO.Octo_PIE-cookR/actions/runs/39051552638 — **14/14 PASS**.
+- The job generated a lockfile candidate, successfully installed 37 packages with `npm ci`, and uploaded `rt6d8-package-lock-candidate` artifact (ID 12107852689). The lockfile is **not yet committed**, so this is a reproducibility milestone, not a completed release gate.
+- ABI getter `grants(bytes32)` now returns eight values, ordered: recipient, ruleId, amount, finalizesAt, verifier, attestor, proofDigest, status. Consumers relying on prior seven-value ABI must regenerate bindings.
+- Successful `submit()` transaction gas samples: 324920, 290768, 307892, 290780, 307868, 290792. Successful `finalize()` samples: 73520, 56432. These are scenario-specific EthereumJS Cancun gas values, **not** a comparative before/after benchmark or a mainnet gas forecast.
+- Failed `finalize()` gas samples: 43712, 43695, 41452, 43749. All corresponding invalid-PENDING cases passed.
+- Action SHA pinning, committed lockfile and independent security review remain outstanding.

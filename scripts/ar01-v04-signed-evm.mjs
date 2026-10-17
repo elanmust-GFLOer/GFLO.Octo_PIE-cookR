@@ -427,7 +427,11 @@ await check("AR01-04: compromised issuer plus authorized attestor can finalize f
  atDay(31);
  await send("outsider","xp",xp,"finalize",[forgedClaim]);
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),before+1000n);
- assert.equal(await read("registry",registry,"totalXP",[account]),before+1025n);
+ await admin("registry", registry, "setPaused", [false]);
+ assert.equal(
+   await read("registry", registry, "totalXP", [account]),
+   before + 1025n
+ );
  // This is an expected vulnerability demonstration, not a security PASS.
 });
 assert.equal(n,N);

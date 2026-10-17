@@ -81,12 +81,19 @@ async function deploy(who,k,args=[]){
 const send=(who,k,address,fn,args=[],expected=1)=>
  tx(who,address,abi[k].encodeFunctionData(fn,args),expected);
 async function view(k,address,fn,args=[]){
- const result=(await vm.evm.runCall({
-  caller:senders.outsider.address,to:createAddressFromString(address),isStatic:true,
-  gasLimit:1_000_000n,data:hexToBytes(abi[k].encodeFunctionData(fn,args))
- })).execResult;
- if(result.exceptionError)throw Error("view "+fn+" failed");
- return abi[k].decodeFunctionResult(fn,bytesToHex(result.returnValue))[0];
+ // Isolate read-only EVM calls from transaction account nonces and state.
+ const viewer=createAddressFromString("0x"+"fe".repeat(20));
+ await vm.stateManager.checkpoint();
+ try {
+  const result=(await vm.evm.runCall({
+   caller:viewer,to:createAddressFromString(address),isStatic:true,
+   gasLimit:1_000_000n,data:hexToBytes(abi[k].encodeFunctionData(fn,args))
+  })).execResult;
+  if(result.exceptionError)throw Error("view "+fn+" failed: "+result.exceptionError.error);
+  return abi[k].decodeFunctionResult(fn,bytesToHex(result.returnValue))[0];
+ } finally {
+  await vm.stateManager.revert();
+ }
 }
 const alice=senders.alice.address.toString();
 const core=await deploy("deployer","core",[senders.deployer.address.toString()]);

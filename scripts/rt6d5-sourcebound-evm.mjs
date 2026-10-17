@@ -77,8 +77,9 @@ async function read(k,address,fn,args=[]){
  const viewer=createAddressFromString("0x"+"fe".repeat(20));
  await vm.stateManager.checkpoint();
  try{
+  const block=createBlock({header:{timestamp:activeTimestamp,gasLimit:30000000n}},{common});
   const res=(await vm.evm.runCall({caller:viewer,to:createAddressFromString(address),
-   isStatic:true,gasLimit:2000000n,data:hexToBytes(abi[k].encodeFunctionData(fn,args))})).execResult;
+   block,isStatic:true,gasLimit:2000000n,data:hexToBytes(abi[k].encodeFunctionData(fn,args))})).execResult;
   if(res.exceptionError)throw Error("read "+k+"."+fn+": "+res.exceptionError.error);
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}

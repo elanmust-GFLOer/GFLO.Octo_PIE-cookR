@@ -14,11 +14,11 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           path: cookr
       - name: Checkout PIE fixture source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: elanmust-GFLOer/gflo-pie
           ref: dbd02d3f1ffd31abff3bda9caaa9852ee7cecf5c
@@ -41,7 +41,7 @@ jobs:
             actual="$(git hash-object "$file")"
             test "$expected" = "$actual" || { echo "SOURCE DRIFT: $file expected=$expected got=$actual"; exit 1; }
           done
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
       - name: Install locked EVM dependencies

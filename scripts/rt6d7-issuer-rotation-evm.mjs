@@ -88,7 +88,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=10;
+let n=0;const N=11;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO RED TEAM 6D.7 — GOVERNANCE SOURCE ISSUER ROTATION ATTACK ===");
 console.log("Solc:",solc.version());
@@ -321,6 +321,22 @@ await check("RT6D7-09 HIGH FINDING: Safe can authorize colluding issuer and pass
  assert.equal(await read("registry",registry,"totalXP",[account]),before+1000n,"disabling issuer alone cannot retroactively revoke finalized XP");
  await admin("xp",xp,"revoke",[falseClaim,id("RT6D7_FRAUD_SOURCE_REVIEW")]);
  assert.equal(await read("registry",registry,"totalXP",[account]),before);
+});
+await check("RT6D8-01 revoked PENDING source approval cannot finalize or credit XP",async()=>{
+ const pending=[account,rule,id("RT6D8_REVOKED_PENDING_EVENT"),id("RT6D8_REVOKED_PENDING_EVIDENCE"),916n,
+   BigInt(activeTimestamp),BigInt(activeTimestamp)+5n*86400n];
+ const digest=await read("xp",xp,"proofDigest",[pending]);
+ const key=id("RT6D8_SOURCE_EVENT_KEY");
+ await auth(digest,key,BigInt(activeTimestamp)+5n*86400n);
+ const receipt=await send("verifier","xp",xp,"submit",[pending,bound,"0x"]);
+ const pendingClaim=await grantFromReceipt(receipt);
+ const before=await read("registry",registry,"totalXP",[account]);
+ await admin("bound",bound,"revoke",[digest]);
+ atDay(9);
+ assert.equal(await read("bound",bound,"isValidSignature",[digest,"0x"]),sigInvalid);
+ await send("outsider","xp",xp,"finalize",[pendingClaim],0);
+ assert.equal(await read("registry",registry,"totalXP",[account]),before);
+ assert.equal((await read("xp",xp,"grants",[pendingClaim]))[6],1n);
 });
 await check("RT6D7-10 Safe revocation and Registry pause still fail closed",async()=>{
  await admin("xp",xp,"revoke",[claimId,id("RT6D5_GOVERNANCE_REVOCATION")]);

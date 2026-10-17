@@ -1,0 +1,44 @@
+name: RT6D4 disposable PostgreSQL gate
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'rt6d4/**'
+      - '.github/workflows/rt6d4-postgres.yml'
+permissions:
+  contents: read
+jobs:
+  postgres-isolation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      pg:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: rt6d4_disposable_only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: rt6d4_disposable_only
+      PGDATABASE: rt6d4_ci
+      RT6D4_DISPOSABLE_DB_ACK: 'YES'
+    steps:
+      - uses: actions/checkout@v4
+      - name: PostgreSQL CLI
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Create disposable database
+        run: PGDATABASE=postgres psql -X -v ON_ERROR_STOP=1 -c 'CREATE DATABASE rt6d4_ci;'
+      - name: Run SQL security tests
+        run: bash rt6d4/tests/run_ephemeral_postgres.sh
+      - name: Run separate-connection concurrency check
+        run: bash rt6d4/tests/02_concurrency.sh

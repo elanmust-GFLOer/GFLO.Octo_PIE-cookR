@@ -84,7 +84,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=8;
+let n=0;const N=10;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V05 MULTI-SOURCE SIGNED EVM REGRESSION ===");
 console.log("Solc:",solc.version());
@@ -286,6 +286,46 @@ await check("AR01-05C: EIP-712 foreign contract domain rejects source approval",
  const valid=[sourceA,await approval(original,sourceB,secondIssuer)].sort((x,y)=>x[0].localeCompare(y[0]));
  assert.ok(await grantFromReceipt(await send("verifier","xp",xp,"submit",[original,attestor,await proofSignature(original),valid])));
 });
+await check("AR01-05D: foreign chainId source signature rejected with no quota or nullifier mutation",async()=>{
+ atDay(35);
+ const original=[account,rule,id("V05_FOREIGN_CHAIN_EVENT"),id("V05_FOREIGN_CHAIN_EVIDENCE"),782n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const cfgCall=await vm.evm.runCall({caller:createAddressFromString("0x"+"fe".repeat(20)),to:createAddressFromString(xp),isStatic:true,gasLimit:2000000n,data:hexToBytes(abi.xp.encodeFunctionData("sources",[rule,sourceB]))});
+ const cfg=abi.xp.decodeFunctionResult("sources",bytesToHex(cfgCall.execResult.returnValue));
+ const {TypedDataEncoder}=req("ethers");
+ const types={GFLOSourceApproval:[
+  {name:"sourceId",type:"bytes32"},{name:"recipient",type:"address"},{name:"ruleId",type:"bytes32"},
+  {name:"eventId",type:"bytes32"},{name:"evidenceDigest",type:"bytes32"},{name:"nonce",type:"uint256"},
+  {name:"issuedAt",type:"uint64"},{name:"validUntil",type:"uint64"},{name:"epoch",type:"uint64"}]};
+ const domain={name:"GFLO XP Evidence",version:"5",chainId:2,verifyingContract:xp};
+ const value={sourceId:sourceB,recipient:original[0],ruleId:original[1],eventId:original[2],evidenceDigest:original[3],nonce:original[4],issuedAt:original[5],validUntil:original[6],epoch:cfg[2]};
+ const foreignHash=TypedDataEncoder.hash(domain,types,value);
+ assert.notEqual(foreignHash,await read("xp",xp,"sourceDigest",[original,sourceB,cfg[2]]));
+ const foreign=[sourceB,cfg[2],secondIssuer.signingKey.sign(foreignHash).serialized];
+ const approvals=[await approval(original,sourceId,issuerWallet),foreign].sort((a,b)=>a[0].localeCompare(b[0]));
+ const before=await read("xp",xp,"claimsPerRule",[account,rule]);
+ await send("verifier","xp",xp,"submit",[original,attestor,await proofSignature(original),approvals],0);
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),before);
+ assert.equal(await read("xp",xp,"usedEvents",[original[2]]),false);
+ assert.equal(await read("xp",xp,"usedEvidence",[original[3]]),false);
+ assert.equal(await read("xp",xp,"validEarnedXP",[account]),1000n);
+});
+await check("AR01-05D: Safe codehash-pins V05 in Registry and TierGate reads canonical XP",async()=>{
+ assert.equal(await read("registry",registry,"paused"),true);
+ await send("outsider","registry",registry,"proposePolicy",[xp,id("INVALID_CODEHASH"),proxy],0);
+ const code=await vm.stateManager.getCode(createAddressFromString(xp));
+ const hash=keccak256(bytesToHex(code));
+ await admin("registry",registry,"proposePolicy",[xp,hash,proxy]);
+ await admin("registry",registry,"activatePolicy");
+ await send("outsider","registry",registry,"setPaused",[false],0);
+ await admin("registry",registry,"setPaused",[false]);
+ assert.equal(await read("xp",xp,"totalXP",[account]),1025n);
+ assert.equal(await read("registry",registry,"totalXP",[account]),1025n);
+ assert.equal(await read("gate",gate,"effectiveTier",[account]),0n);
+ await admin("registry",registry,"setPaused",[true]);
+ await send("outsider","gate",gate,"effectiveTier",[account],0);
+ await admin("registry",registry,"setPaused",[false]);
+ assert.equal(await read("registry",registry,"totalXP",[account]),1025n);
+});
 assert.equal(n,N);
-console.log("8/8 V05 SIGNED EVM RED TEAM EXECUTED");
+console.log("10/10 V05 SIGNED EVM RED TEAM EXECUTED");
 console.log("Scope: signer independence only; real-world evidence truth and collusion remain out of scope.");

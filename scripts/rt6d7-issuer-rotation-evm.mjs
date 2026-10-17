@@ -17,7 +17,8 @@ if(!repo || !fs.existsSync(join(repo,"package.json"))) throw Error("GFLO_PIE_ROO
 const req=createRequire(join(repo,"package.json"));
 const localReq=createRequire(import.meta.url);
 const solc=req("solc"),{Interface,Wallet,getCreateAddress,ZeroAddress,parseUnits,id,keccak256}=req("ethers");
-const root=join(path.dirname(localReq.resolve("@safe-global/safe-smart-account/package.json")),"build/artifacts/contracts");
+const root=process.env.SAFE_ARTIFACTS_ROOT;
+if(!root || !fs.existsSync(join(root,"Safe.sol/Safe.json"))) throw Error("SAFE_ARTIFACTS_ROOT must contain official Safe artifacts");
 const artifacts={
  safe:JSON.parse(fs.readFileSync(join(root,"Safe.sol/Safe.json"),"utf8")),
  factory:JSON.parse(fs.readFileSync(join(root,"proxies/SafeProxyFactory.sol/SafeProxyFactory.json"),"utf8"))

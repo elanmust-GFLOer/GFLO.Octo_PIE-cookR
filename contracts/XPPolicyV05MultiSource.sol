@@ -43,6 +43,10 @@ contract XPPolicyV05MultiSource is EIP712 {
         Status status;
         bytes32[2] sourceIds;
         uint64[2] epochs;
+        uint64 reservedDay;
+        uint64 reservedWeek;
+        bool revokedWhilePending;
+        bool quotaReleased;
     }
 
     IPIEV05 public immutable pie;
@@ -70,12 +74,14 @@ contract XPPolicyV05MultiSource is EIP712 {
     error LimitReached();
     error InvalidGrant();
     error TooEarly();
+    error InvalidRecovery();
     error Paused();
 
     event SourceConfigured(bytes32 indexed ruleId,bytes32 indexed sourceId,address issuer,bytes32 controlGroup,uint64 epoch,bool active);
     event GrantPending(bytes32 indexed claimId,address indexed recipient,uint16 amount,uint64 finalizesAt);
     event GrantFinalized(bytes32 indexed claimId,address indexed recipient,uint16 amount);
     event GrantRevoked(bytes32 indexed claimId,address indexed recipient,uint16 amount,bytes32 reason);
+    event PendingQuotaReleased(bytes32 indexed claimId,address indexed recipient,bytes32 indexed ruleId,uint16 amount);
 
     modifier onlyOwner() { if(msg.sender!=owner) revert Unauthorized(); _; }
     constructor(address core,address safeOwner) EIP712("GFLO XP Evidence","5") {
@@ -157,6 +163,8 @@ contract XPPolicyV05MultiSource is EIP712 {
         Grant storage g=_grants[claimId];
         g.recipient=p.recipient; g.ruleId=p.ruleId; g.amount=rule.amount;
         g.finalizesAt=uint64(block.timestamp+CHALLENGE_PERIOD); g.status=Status.PENDING;
+        g.reservedDay=uint64(block.timestamp/1 days);
+        g.reservedWeek=uint64(block.timestamp/7 days);
         for(uint256 i=0;i<2;i++){g.sourceIds[i]=approvals[i].sourceId;g.epochs[i]=approvals[i].epoch;}
         emit GrantPending(claimId,p.recipient,rule.amount,g.finalizesAt);
     }
@@ -180,9 +188,23 @@ contract XPPolicyV05MultiSource is EIP712 {
         Grant storage g=_grants[claimId];
         if(reason==bytes32(0)||(g.status!=Status.PENDING&&g.status!=Status.VALID)) revert InvalidGrant();
         if(g.status==Status.VALID) validEarnedXP[g.recipient]-=g.amount;
+        else g.revokedWhilePending=true;
         g.status=Status.REVOKED;
         emit GrantRevoked(claimId,g.recipient,g.amount,reason);
     }
+    /// @notice Safe-only one-time release of a reservation revoked while PENDING.
+    /// @dev Replay nullifiers are deliberately permanent. The original day/week
+    ///      buckets are decremented, never the current block's buckets.
+    function releaseRevokedPendingQuota(bytes32 claimId) external onlyOwner {
+        Grant storage g=_grants[claimId];
+        if(g.status!=Status.REVOKED||!g.revokedWhilePending||g.quotaReleased) revert InvalidRecovery();
+        g.quotaReleased=true;
+        claimsPerRule[g.recipient][g.ruleId]-=1;
+        dailyXP[g.recipient][g.reservedDay]-=g.amount;
+        weeklyXP[g.recipient][g.reservedWeek]-=g.amount;
+        emit PendingQuotaReleased(claimId,g.recipient,g.ruleId,g.amount);
+    }
+
     /// @notice Canonical XP interface required by TrustedXPSourceRegistryV02.
     /// @dev Genesis identity XP plus finalized and non-revoked policy XP.
     function totalXP(address wallet) external view returns (uint64) {

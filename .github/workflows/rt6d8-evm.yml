@@ -1,0 +1,56 @@
+name: RT6D8 signed EVM regression (experimental)
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'contracts/**'
+      - 'scripts/rt6d7-issuer-rotation-evm.mjs'
+      - '.github/workflows/rt6d8-evm.yml'
+jobs:
+  signed-evm:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: cookr
+      - name: Checkout PIE fixture source
+        uses: actions/checkout@v4
+        with:
+          repository: elanmust-GFLOer/gflo-pie
+          ref: feature/pie-core-v0.2
+          path: gflo-pie
+      - name: Verify pinned PIE fixture blob SHAs (fail closed on source drift)
+        working-directory: gflo-pie
+        run: |
+          set -eu
+          printf '%s\n' \
+            'c2442cda19e133417e38ff8b01e27c4ab73b3c2d contracts/PIECoreIgnitionV01.sol' \
+            'd5d62c48db396aa39d6f1d481d6f27f36422cfe2 contracts/TrustedXPSourceRegistryV02.sol' \
+            'd9015e7defe1aed3fab05eb88647693ccb1c8f41 contracts/GFLOIgnitionV01.sol' \
+            'cbd69a5b0b80eea43eab1f9218b69666cf973d69 contracts/GFLOFixedSupplyV01.sol' \
+            'e10a4ae3a907b0f059e9b57f09b7b29dbb12eac3 contracts/EffectiveTierGateV01.sol' |
+          while read -r expected file; do
+            actual="$(git hash-object "$file")"
+            test "$expected" = "$actual" || { echo "SOURCE DRIFT: $file expected=$expected got=$actual"; exit 1; }
+          done
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install experimental EVM runner dependencies
+        working-directory: cookr
+        run: |
+          npm install --no-audit --no-fund --no-save --package-lock=false \
+            solc@0.8.34 ethers@6.17.0 \
+            @ethereumjs/vm@10 @ethereumjs/tx@10 @ethereumjs/block@10 \
+            @ethereumjs/common@10 @ethereumjs/util@10 \
+            @openzeppelin/contracts@5 @safe-global/safe-smart-account@1.5.0
+      - name: Run signed EVM lifecycle scenarios
+        working-directory: cookr
+        env:
+          GFLO_PIE_ROOT: ${{ github.workspace }}/gflo-pie
+          SAFE_ARTIFACTS_ROOT: ${{ github.workspace }}/cookr/node_modules/@safe-global/safe-smart-account/build/artifacts/contracts
+        run: |
+          node --version
+          node scripts/rt6d7-issuer-rotation-evm.mjs

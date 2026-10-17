@@ -201,13 +201,13 @@ await check("Single compromised issuer cannot mint XP or reserve quota",async()=
 });
 await check("Different source IDs with identical issuer/control group fail closed",async()=>{
  await admin("xp",xp,"configureSource",[rule,sourceB,issuer,groupA,true]);
- const approvals=[await approval(p,sourceId,issuerWallet),await approval(p,sourceB,issuerWallet)];
+ const approvals=[await approval(p,sourceId,issuerWallet),await approval(p,sourceB,issuerWallet)].sort((a,b)=>a[0].localeCompare(b[0]));
  await send("verifier","xp",xp,"submit",[p,attestor,await proofSignature(p),approvals],0);
  assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),0n);
  await admin("xp",xp,"configureSource",[rule,sourceB,secondIssuer.address,groupB,true]);
 });
 await check("Valid independent 2-of-2 approvals finalize only after challenge",async()=>{
- const approvals=[await approval(p,sourceId,issuerWallet),await approval(p,sourceB,secondIssuer)];
+ const approvals=[await approval(p,sourceId,issuerWallet),await approval(p,sourceB,secondIssuer)].sort((a,b)=>a[0].localeCompare(b[0]));
  const receipt=await send("verifier","xp",xp,"submit",[p,attestor,await proofSignature(p),approvals]);
  const claim=await grantFromReceipt(receipt);
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),0n);
@@ -219,7 +219,7 @@ await check("Valid independent 2-of-2 approvals finalize only after challenge",a
 await check("Rotation of second source blocks pending grant",async()=>{
  atDay(7);
  const p2=[account,rule,id("V05_PENDING_ROTATION_EVENT"),id("V05_PENDING_ROTATION_EVIDENCE"),778n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
- const approvals=[await approval(p2,sourceId,issuerWallet),await approval(p2,sourceB,secondIssuer)];
+ const approvals=[await approval(p2,sourceId,issuerWallet),await approval(p2,sourceB,secondIssuer)].sort((a,b)=>a[0].localeCompare(b[0]));
  const receipt=await send("verifier","xp",xp,"submit",[p2,attestor,await proofSignature(p2),approvals]);
  const claim=await grantFromReceipt(receipt);
  await admin("xp",xp,"configureSource",[rule,sourceB,secondIssuer.address,groupB,false]);

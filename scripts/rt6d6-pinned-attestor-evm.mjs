@@ -275,11 +275,11 @@ await check("RT6D6-07 after finalize authorized grant permits signed Tier 1 burn
 
 await check("RT6D6-08 Safe 2/3 cannot authorize an alternative EOA attestor",async()=>{
  const change=abi.xp.encodeFunctionData("setAttestor",[rule,maliciousAttestor.address,true]);
- const receipt=await safeSubmit(xp,change);
- const failed=receipt.receipt.logs.some(l=>{
-  try{return abi.safe.parseLog({topics:l[1].map(bytesToHex),data:bytesToHex(l[2])})?.name==="ExecutionFailure";}catch{return false}
- });
- assert.ok(failed,"Safe must emit ExecutionFailure for forbidden attestor addition");
+ const beforeSafeNonce=await read("safe",proxy,"nonce");
+ const receipt=await safeSubmit(xp,change,[owners[0],owners[1]],0);
+ assert.equal(receipt.receipt.logs.length,0,"reverted outer transaction must emit no logs");
+ assert.equal(await read("safe",proxy,"nonce"),beforeSafeNonce,
+   "failed Safe attestor authorization must not consume Safe nonce");
  assert.equal(await read("xp",xp,"sourceBoundAttestor"),bound);
  assert.equal(await read("xp",xp,"ruleAttestors",[rule,maliciousAttestor.address]),false);
  const fake=[account,rule,id("RT6D6_FALSE_EVENT"),id("RT6D6_FALSE_EVIDENCE"),844n,

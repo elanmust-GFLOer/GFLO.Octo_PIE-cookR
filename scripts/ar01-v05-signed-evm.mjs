@@ -84,7 +84,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=22;
+let n=0;const N=23;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V05 MULTI-SOURCE SIGNED EVM REGRESSION ===");
 console.log("Solc:",solc.version());
@@ -497,6 +497,39 @@ await check("AR01-05H: VALID-then-REVOKED grant cannot recover quota",async()=>{
  assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),recoveryBefore);
  assert.equal(await read("registry",registry,"totalXP",[account]),25n);
 });
+await check("AR01-05I: seeded 32-case recovery/replay property sequence preserves state",async()=>{
+ const seed=0x05f00d42;
+ let rng=seed>>>0;
+ const next=()=>{rng^=rng<<13;rng^=rng>>>17;rng^=rng<<5;return rng>>>0;};
+ const eventKey=keccak256(AbiCoder.defaultAbiCoder().encode(["bytes32"],[recoveryProof[2]]));
+ const evidenceKey=keccak256(AbiCoder.defaultAbiCoder().encode(["bytes32"],[recoveryProof[3]]));
+ const nonceKey=keccak256(AbiCoder.defaultAbiCoder().encode(["address","uint256"],[attestor,recoveryProof[4]]));
+ const snapshot=async()=>({
+  claims:await read("xp",xp,"claimsPerRule",[account,rule]),
+  day:await read("xp",xp,"dailyXP",[account,63n]),
+  week:await read("xp",xp,"weeklyXP",[account,9n]),
+  xp:await read("xp",xp,"validEarnedXP",[account]),
+  canonical:await read("registry",registry,"totalXP",[account]),
+  event:await read("xp",xp,"usedEvents",[eventKey]),
+  evidence:await read("xp",xp,"usedEvidence",[evidenceKey]),
+  nonce:await read("xp",xp,"usedProofNonces",[nonceKey]),
+  supply:await read("token",token,"totalSupply"),
+  tier:await read("gate",gate,"effectiveTier",[account])
+ });
+ const before=await snapshot();
+ assert.equal(before.event,true);
+ assert.equal(before.evidence,true);
+ assert.equal(before.nonce,true);
+ for(let i=0;i<32;i++){
+  const choice=next()%4;
+  if(choice===0)await send("outsider","xp",xp,"releaseRevokedPendingQuota",[recoveryClaim],0);
+  else if(choice===1)await send("outsider","xp",xp,"releaseRevokedPendingQuota",[id("AR01-05I_UNKNOWN_"+i)],0);
+  else if(choice===2)await send("verifier","xp",xp,"submit",[recoveryProof,attestor,await proofSignature(recoveryProof),recoveryApprovals],0);
+  else await send("outsider","xp",xp,"releaseRevokedPendingQuota",[finalizedV05Claim],0);
+  assert.deepEqual(await snapshot(),before,"seed="+seed+" iteration="+i+" choice="+choice);
+ }
+ console.log("AR01-05I deterministic property seed:",seed,"attempts: 32");
+});
 assert.equal(n,N);
-console.log("22/22 V05 SIGNED EVM RED TEAM EXECUTED");
+console.log("23/23 V05 SIGNED EVM RED TEAM EXECUTED");
 console.log("Scope: signer independence only; real-world evidence truth and collusion remain out of scope.");

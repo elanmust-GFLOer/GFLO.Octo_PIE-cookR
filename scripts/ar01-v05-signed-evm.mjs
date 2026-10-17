@@ -15,7 +15,7 @@ import {createAccount,createAddressFromPrivateKey,createAddressFromString,hexToB
 
 const repo=join(homedir(),"gflo-pie"),req=createRequire(join(repo,"package.json"));
 const localReq=createRequire(import.meta.url);
-const solc=req("solc"),{Interface,Wallet,getCreateAddress,ZeroAddress,parseUnits,id,keccak256}=req("ethers");
+const solc=req("solc"),{Interface,Wallet,AbiCoder,getCreateAddress,ZeroAddress,parseUnits,id,keccak256}=req("ethers");
 const root=join(process.cwd(),"node_modules/@safe-global/safe-smart-account/build/artifacts/contracts");
 const artifacts={
  safe:JSON.parse(fs.readFileSync(join(root,"Safe.sol/Safe.json"),"utf8")),

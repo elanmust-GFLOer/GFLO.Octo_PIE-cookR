@@ -1,0 +1,51 @@
+name: AR01 Signed EVM Red Team 6C
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  signed-evm-6c:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout PIE
+        uses: actions/checkout@v4
+        with:
+          repository: elanmust-GFLOer/gflo-pie
+          ref: feature/pie-core-v0.2
+          path: _pie
+          persist-credentials: false
+      - name: Checkout legacy GasFeeLoop
+        uses: actions/checkout@v4
+        with:
+          repository: elanmust-GFLOer/GasFeeLoop-
+          path: _gas
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Record exact sources
+        run: |
+          git rev-parse HEAD
+          git -C _pie rev-parse HEAD
+          git -C _gas rev-parse HEAD
+          node --version
+      - name: Install local EVM fixture dependencies
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts @ethereumjs/vm@10 @ethereumjs/tx@10 @ethereumjs/block@10 @ethereumjs/common@10 @ethereumjs/util@10 @openzeppelin/contracts@5 @safe-global/safe-smart-account@1.5
+          cd _pie
+          npm install --no-save --no-package-lock --ignore-scripts ethers@6 solc@0.8.34
+      - name: Prepare existing fixture paths
+        run: |
+          mkdir -p "$HOME/gflo-pie" "$HOME/GasFeeLoop-"
+          cp _pie/package.json "$HOME/gflo-pie/package.json"
+          ln -s "$GITHUB_WORKSPACE/_pie/node_modules" "$HOME/gflo-pie/node_modules"
+          ln -s "$GITHUB_WORKSPACE/_gas/contracts" "$HOME/GasFeeLoop-/contracts"
+          git -C _pie show origin/feature/pie-core-v0.2:contracts/XPPolicyV03.sol >/dev/null
+          git -C _pie config --get remote.origin.url
+          git -C "$HOME/gflo-pie" init
+          git -C "$HOME/gflo-pie" remote add origin "$GITHUB_WORKSPACE/_pie"
+          git -C "$HOME/gflo-pie" fetch origin feature/pie-core-v0.2
+      - name: Execute signed local EVM red team
+        run: node scripts/rt6c-source-authenticity.mjs

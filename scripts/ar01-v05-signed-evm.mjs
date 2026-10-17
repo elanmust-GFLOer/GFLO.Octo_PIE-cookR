@@ -184,7 +184,8 @@ await check("V05 Safe governance and identity bootstrap",async()=>{
  assert.equal(await read("xp",xp,"owner"),proxy);
  await send("alice","core",core,"createIdentity",[3]);
  await admin("xp",xp,"setVerifierRole",[verifierAddress,2]);
- await admin("xp",xp,"registerRule",[rule,1000,3]);
+ // Allow independent positive controls across the V05 adversarial scenarios; each still obeys daily/weekly caps.
+ await admin("xp",xp,"registerRule",[rule,1000,6]);
  await admin("xp",xp,"setAttestor",[rule,attestor,true]);
  await admin("xp",xp,"configureSource",[rule,sourceId,issuer,groupA,true]);
  await admin("xp",xp,"configureSource",[rule,sourceB,secondIssuer.address,groupB,true]);

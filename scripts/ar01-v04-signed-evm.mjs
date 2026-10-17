@@ -287,17 +287,21 @@ await check("Paused source and expired source approval fail closed",async()=>{
 });
 await check("PENDING source revocation blocks finalize permanently across issuer reactivation",async()=>{
  const nextIssuer=new EthersWallet("0x"+"b1".repeat(32));
- const pendingProof=[account,rule,id("REVOKED_PENDING_EVENT"),id("REVOKED_PENDING_EVIDENCE"),904n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const pendingRule=id("AR01_03B_PENDING_REVOCATION_RULE");
+ await admin("xp",xp,"registerRule",[pendingRule,1000,3]);
+ await admin("xp",xp,"setAttestor",[pendingRule,attestor,true]);
+ await admin("xp",xp,"configureSource",[pendingRule,sourceId,nextIssuer.address,true]);
+ const pendingProof=[account,pendingRule,id("REVOKED_PENDING_EVENT"),id("REVOKED_PENDING_EVIDENCE"),904n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
  const receipt=await send("verifier","xp",xp,"submit",[pendingProof,attestor,await proofSignature(pendingProof),await sourceSignature(pendingProof,nextIssuer)]);
  const pendingId=await grantFromReceipt(receipt);
  const pendingEpoch=await read("xp",xp,"grantSourceEpoch",[pendingId]);
  assert.ok(pendingEpoch>0n);
- await admin("xp",xp,"configureSource",[rule,sourceId,nextIssuer.address,false]);
+ await admin("xp",xp,"configureSource",[pendingRule,sourceId,nextIssuer.address,false]);
  atDay(7);
  const before=await read("xp",xp,"validEarnedXP",[account]);
  await send("outsider","xp",xp,"finalize",[pendingId],0);
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),before);
- await admin("xp",xp,"configureSource",[rule,sourceId,nextIssuer.address,true]);
+ await admin("xp",xp,"configureSource",[pendingRule,sourceId,nextIssuer.address,true]);
  await send("outsider","xp",xp,"finalize",[pendingId],0);
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),before);
 });

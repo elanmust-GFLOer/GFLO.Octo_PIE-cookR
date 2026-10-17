@@ -106,7 +106,7 @@ const beforeXP=(await view("core",core,"getIdentity",[alice])).xp;
 const beforeStake=await view("gas",gas,"getStake",[alice]);
 // Snapshot only ABI-backed state present in the legacy variant actually compiled.
 const beforeAccumulated=await view("gas",gas,"getAccumulatedXP",[alice]);
-const beforeEpoch=await view("gas",gas,"getEpochXP",[alice]);
+// Actual public Solidity mapping getter: epochXP(address,uint256). Timestamp is 10000 seconds, epoch=0.\nconst beforeEpoch=await view("gas",gas,"epochXP",[alice,10000n/604800n]);
 const beforeAliceBalance=await view("token",token,"balanceOf",[alice]);
 const beforePoolBalance=await view("token",token,"balanceOf",[gas]);
 const rejectedOwner=await send("deployer","gas",gas,"rewardXP",[alice,amount],0);
@@ -114,7 +114,7 @@ assert.equal(rejectedOwner.receipt.logs.length,0,"reverted reward must emit no e
 assert.equal((await view("core",core,"getIdentity",[alice])).xp,beforeXP);
 assert.equal(await view("gas",gas,"getStake",[alice]),beforeStake);
 assert.equal(await view("gas",gas,"getAccumulatedXP",[alice]),beforeAccumulated);
-assert.equal(await view("gas",gas,"getEpochXP",[alice]),beforeEpoch);
+assert.equal(await view("gas",gas,"epochXP",[alice,10000n/604800n]),beforeEpoch);
 assert.equal(await view("token",token,"balanceOf",[alice]),beforeAliceBalance);
 assert.equal(await view("token",token,"balanceOf",[gas]),beforePoolBalance);
 check("legacy owner reward reverts against PIE without addXP and all state rolls back");
@@ -122,6 +122,6 @@ const rejectedOutsider=await send("outsider","gas",gas,"rewardXP",[alice,amount]
 assert.equal(rejectedOutsider.receipt.logs.length,0);
 assert.equal((await view("core",core,"getIdentity",[alice])).xp,25n);
 assert.equal(await view("gas",gas,"getAccumulatedXP",[alice]),beforeAccumulated);
-assert.equal(await view("gas",gas,"getEpochXP",[alice]),beforeEpoch);
+assert.equal(await view("gas",gas,"epochXP",[alice,10000n/604800n]),beforeEpoch);
 check("unauthorized outsider cannot grant XP through legacy GasFeeLoop");
 console.log("RED TEAM 6B: 4/4 signed local EVM checks. Legacy integration rejected; no external deployment.");

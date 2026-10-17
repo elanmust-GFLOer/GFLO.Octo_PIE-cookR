@@ -55,6 +55,7 @@ for(const [name,key] of Object.entries(keys)){
 }
 const owners=["11","22","33"].map(c=>new Wallet("0x"+c.repeat(32)));
 const TEST_GAS=22000000n,GAS_PRICE=2000000000n;
+const gasSamples=[];
 let activeTimestamp=1000n;
 const atDay=day=>{ activeTimestamp=BigInt(day)*86400n+1000n; };
 async function tx(name,to,data,status=1){
@@ -77,7 +78,9 @@ async function deploy(name,k,args=[]){
  return {address,receipt};
 }
 async function send(name,k,address,fn,args=[],status=1){
- return tx(name,address,abi[k].encodeFunctionData(fn,args),status);
+ const result=await tx(name,address,abi[k].encodeFunctionData(fn,args),status);
+ if(k==="xp" && ["submit","finalize"].includes(fn)) gasSamples.push({function:fn,status,gas:Number(result.totalGasSpent)});
+ return result;
 }
 async function read(k,address,fn,args=[]){
  const viewer=createAddressFromString("0x"+"fe".repeat(20));
@@ -383,5 +386,9 @@ await check("RT6D7-10 Safe revocation and Registry pause still fail closed",asyn
  await send("outsider","gate",gate,"requireEffectiveTier",[account,1],0);
 });
 assert.equal(n,N);
+const grantGetter=artifacts.xp.abi.find(x=>x.type==="function" && x.name==="grants");
+assert.ok(grantGetter?.outputs?.some(x=>x.name==="proofDigest"),"Grant getter must expose proofDigest");
+console.log("RT6D8 ABI grants outputs:",JSON.stringify(grantGetter.outputs.map(x=>({name:x.name,type:x.type}))));
+console.log("RT6D8 GAS samples:",JSON.stringify(gasSamples));
 console.log("RED TEAM 6D.7 + 6D.8 — 14/14 signed EVM scenarios executed.");
 console.log("RT6C HIGH reproduced: Safe can approve colluding issuer who attests fictional completion even with pinned V04. Revocation required; no audit.");

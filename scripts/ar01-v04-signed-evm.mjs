@@ -84,7 +84,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=12;
+let n=0;const N=14;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V04 SOURCE-BOUND SIGNED EVM REGRESSION ===");
 console.log("Solc:",solc.version());
@@ -307,6 +307,51 @@ await check("PENDING source revocation blocks finalize permanently across issuer
  await send("outsider","xp",xp,"finalize",[pendingId],0);
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),before);
 });
+await check("EIP-712 rejects signatures replayed on a second XPPolicy deployment",async()=>{
+ atDay(14);
+ const xp2=(await deploy("deployer","xp",[core,proxy])).address;
+ const crossRule=id("AR01_03C_CROSS_CONTRACT_RULE");
+ const currentIssuer=new EthersWallet("0x"+"b1".repeat(32));
+ await admin("xp",xp,"registerRule",[crossRule,1000,3]);
+ await admin("xp",xp,"setAttestor",[crossRule,attestor,true]);
+ await admin("xp",xp,"configureSource",[crossRule,sourceId,currentIssuer.address,true]);
+ await admin("xp",xp2,"registerRule",[crossRule,1000,3]);
+ await admin("xp",xp2,"setAttestor",[crossRule,attestor,true]);
+ await admin("xp",xp2,"setVerifierRole",[verifierAddress,2]);
+ await admin("xp",xp2,"configureSource",[crossRule,sourceId,currentIssuer.address,true]);
+ const p=[account,crossRule,id("CROSS_CONTRACT_EVENT"),id("CROSS_CONTRACT_EVIDENCE"),905n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const oldAtt=await proofSignature(p);
+ const oldSource=await sourceSignature(p,currentIssuer);
+ assert.notEqual(await read("xp",xp,"proofDigest",[p]),await read("xp",xp2,"proofDigest",[p]));
+ assert.notEqual(await read("xp",xp,"sourceDigest",[p]),await read("xp",xp2,"sourceDigest",[p]));
+ const before=await read("xp",xp2,"validEarnedXP",[account]);
+ await send("verifier","xp",xp2,"submit",[p,attestor,oldAtt,oldSource],0);
+ assert.equal(await read("xp",xp2,"validEarnedXP",[account]),before);
+ assert.equal(await read("xp",xp2,"sourceApprovalsUsed",[await read("xp",xp2,"sourceDigest",[p])]),false);
+});
+await check("EIP-712 rejects foreign chainId signatures without consuming source approval",async()=>{
+ const {TypedDataEncoder}=req("ethers");
+ const foreignRule=id("AR01_03C_FOREIGN_CHAIN_RULE");
+ const currentIssuer=new EthersWallet("0x"+"b1".repeat(32));
+ await admin("xp",xp,"registerRule",[foreignRule,1000,3]);
+ await admin("xp",xp,"setAttestor",[foreignRule,attestor,true]);
+ await admin("xp",xp,"configureSource",[foreignRule,sourceId,currentIssuer.address,true]);
+ const p=[account,foreignRule,id("FOREIGN_CHAIN_EVENT"),id("FOREIGN_CHAIN_EVIDENCE"),906n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const cfg=await read("xp",xp,"ruleSources",[foreignRule]);
+ const domain={name:"GFLO XP Evidence",version:"4",chainId:31337,verifyingContract:xp};
+ const sourceTypes={GFLOSourceApproval:[
+ {name:"sourceId",type:"bytes32"},{name:"recipient",type:"address"},{name:"ruleId",type:"bytes32"},
+ {name:"eventId",type:"bytes32"},{name:"evidenceDigest",type:"bytes32"},{name:"nonce",type:"uint256"},
+ {name:"issuedAt",type:"uint64"},{name:"validUntil",type:"uint64"},{name:"epoch",type:"uint64"}]};
+ const sourceValue={sourceId:cfg.sourceId,recipient:p[0],ruleId:p[1],eventId:p[2],evidenceDigest:p[3],nonce:p[4],issuedAt:p[5],validUntil:p[6],epoch:cfg.epoch};
+ const foreignDigest=TypedDataEncoder.hash(domain,sourceTypes,sourceValue);
+ assert.notEqual(foreignDigest,await read("xp",xp,"sourceDigest",[p]));
+ const foreignSig=currentIssuer.signingKey.sign(foreignDigest).serialized;
+ const before=await read("xp",xp,"validEarnedXP",[account]);
+ await send("verifier","xp",xp,"submit",[p,attestor,await proofSignature(p),foreignSig],0);
+ assert.equal(await read("xp",xp,"validEarnedXP",[account]),before);
+ assert.equal(await read("xp",xp,"sourceApprovalsUsed",[await read("xp",xp,"sourceDigest",[p])]),false);
+});
 assert.equal(n,N);
-console.log("12/12 V04 SOURCE-BOUND SIGNED EVM REGRESSION EXECUTED");
+console.log("14/14 V04 SOURCE-BOUND SIGNED EVM REGRESSION EXECUTED");
 console.log("Scope: source authorization enforced for this fixture; independent issuer compromise and real-world event truth remain out of scope.");

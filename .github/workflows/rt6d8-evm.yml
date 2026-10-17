@@ -5,6 +5,8 @@ on:
     paths:
       - 'contracts/**'
       - 'scripts/rt6d7-issuer-rotation-evm.mjs'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/rt6d8-evm.yml'
 jobs:
   signed-evm:
@@ -42,14 +44,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install experimental EVM runner dependencies
+      - name: Generate dependency lock candidate
         working-directory: cookr
-        run: |
-          npm install --no-audit --no-fund --no-save --package-lock=false \
-            solc@0.8.34 ethers@6.17.0 \
-            @ethereumjs/vm@10 @ethereumjs/tx@10 @ethereumjs/block@10 \
-            @ethereumjs/common@10 @ethereumjs/util@10 \
-            @openzeppelin/contracts@5 @safe-global/safe-smart-account@1.5.0
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify clean lockfile installation
+        working-directory: cookr
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Archive candidate dependency lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: rt6d8-package-lock-candidate
+          path: cookr/package-lock.json
+          if-no-files-found: error
       - name: Run signed EVM lifecycle scenarios
         working-directory: cookr
         env:

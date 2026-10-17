@@ -84,7 +84,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=19;
+let n=0;const N=20;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V05 MULTI-SOURCE SIGNED EVM REGRESSION ===");
 console.log("Solc:",solc.version());
@@ -448,6 +448,24 @@ await check("AR01-05F: unauthorized source governance and emergency toggles reve
  assert.equal(await read("registry",registry,"paused"),false);
  assert.equal(await read("registry",registry,"totalXP",[account]),beforeXP);
 });
+await check("AR01-05G: revoked PENDING keeps quota and replay nullifiers consumed",async()=>{
+ atDay(63);
+ const p5=[account,rule,id("V05_REVOKED_PENDING_EVENT"),id("V05_REVOKED_PENDING_EVIDENCE"),786n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const approvals=[await approval(p5,sourceId,issuerWallet),await approval(p5,sourceB,secondIssuer)].sort((a,b)=>a[0].localeCompare(b[0]));
+ const beforeClaims=await read("xp",xp,"claimsPerRule",[account,rule]);
+ const beforeXP=await read("xp",xp,"validEarnedXP",[account]);
+ const receipt=await send("verifier","xp",xp,"submit",[p5,attestor,await proofSignature(p5),approvals]);
+ const pending=await grantFromReceipt(receipt);
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),beforeClaims+1n);
+ await admin("xp",xp,"revoke",[pending,id("V05_REVOKED_PENDING_BASELINE")]);
+ assert.equal(await read("xp",xp,"grantStatus",[pending]),3n);
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),beforeClaims+1n);
+ assert.equal(await read("xp",xp,"usedEvents",[p5[2]]),true);
+ assert.equal(await read("xp",xp,"usedEvidence",[p5[3]]),true);
+ assert.equal(await read("xp",xp,"validEarnedXP",[account]),beforeXP);
+ await send("verifier","xp",xp,"submit",[p5,attestor,await proofSignature(p5),approvals],0);
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),beforeClaims+1n);
+});
 assert.equal(n,N);
-console.log("19/19 V05 SIGNED EVM RED TEAM EXECUTED");
+console.log("20/20 V05 SIGNED EVM RED TEAM EXECUTED");
 console.log("Scope: signer independence only; real-world evidence truth and collusion remain out of scope.");

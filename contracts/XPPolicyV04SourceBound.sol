@@ -144,13 +144,15 @@ contract XPPolicyV04SourceBound is EIP712 {
     }
 
     /// @dev Caller is verifier. Attestor MUST be a separately allowed signer.
-    function submit(Proof calldata proof,address attestor,bytes calldata signature,bytes calldata sourceSignature) external returns(bytes32 claimId) {
+    function _verifySource(Proof calldata proof,address attestor,bytes calldata sourceSignature) private view returns(bytes32 approval) {
         SourceConfig memory source=ruleSources[proof.ruleId];
-        if(!source.active || source.issuer==address(0)) revert InvalidSource();
-        if(source.issuer==attestor || source.issuer==msg.sender) revert InvalidSource();
-        bytes32 sourceApproval=sourceDigest(proof);
-        if(sourceApprovalsUsed[sourceApproval] ||
-           !SignatureChecker.isValidSignatureNow(source.issuer,sourceApproval,sourceSignature)) revert InvalidSource();
+        if(!source.active || source.issuer==address(0) || source.issuer==attestor || source.issuer==msg.sender) revert InvalidSource();
+        approval=sourceDigest(proof);
+        if(sourceApprovalsUsed[approval] ||
+           !SignatureChecker.isValidSignatureNow(source.issuer,approval,sourceSignature)) revert InvalidSource();
+    }
+
+    function _verifyClaim(Proof calldata proof,address attestor,bytes calldata signature) private view returns(bytes32 digest,uint16 amount,uint32 maxClaims) {
         if(paused) revert Paused();
         Rule memory rule=rules[proof.ruleId];
         if(!rule.active) revert InvalidRule();
@@ -159,24 +161,33 @@ contract XPPolicyV04SourceBound is EIP712 {
         if(proof.recipient==address(0)||proof.eventId==bytes32(0)||proof.evidenceDigest==bytes32(0)) revert InvalidProof();
         if(proof.issuedAt>block.timestamp || proof.validUntil<block.timestamp || proof.validUntil<=proof.issuedAt) revert ProofExpired();
         if(!pie.getIdentity(proof.recipient).exists) revert InvalidIdentity();
-        bytes32 digest=proofDigest(proof);
+        digest=proofDigest(proof);
         if(!SignatureChecker.isValidSignatureNow(attestor,digest,signature)) revert InvalidProof();
+        amount=rule.amount;
+        maxClaims=rule.maxClaims;
+    }
+
+    function _consumeReplay(Proof calldata proof,address attestor,bytes32 sourceApproval) private {
         bytes32 eventKey=keccak256(abi.encode(proof.eventId));
         bytes32 evidenceKey=keccak256(abi.encode(proof.evidenceDigest));
         bytes32 nonceKey=keccak256(abi.encode(attestor,proof.nonce));
         if(usedEvents[eventKey]||usedEvidence[evidenceKey]||usedProofNonces[nonceKey]) revert Replay();
-
-        _reserveQuota(proof.recipient,proof.ruleId,rule.amount,rule.maxClaims);
-        claimId=keccak256(abi.encode(digest,attestor));
-        if(grants[claimId].status!=Status.NONE) revert Replay();
-
         sourceApprovalsUsed[sourceApproval]=true;
         usedEvents[eventKey]=true;
         usedEvidence[evidenceKey]=true;
         usedProofNonces[nonceKey]=true;
+    }
+
+    function submit(Proof calldata proof,address attestor,bytes calldata signature,bytes calldata sourceSignature) external returns(bytes32 claimId) {
+        bytes32 approval=_verifySource(proof,attestor,sourceSignature);
+        (bytes32 digest,uint16 amount,uint32 maxClaims)=_verifyClaim(proof,attestor,signature);
+        claimId=keccak256(abi.encode(digest,attestor));
+        if(grants[claimId].status!=Status.NONE) revert Replay();
+        _reserveQuota(proof.recipient,proof.ruleId,amount,maxClaims);
+        _consumeReplay(proof,attestor,approval);
         uint64 deadline=uint64(block.timestamp+CHALLENGE_PERIOD);
-        grants[claimId]=Grant(proof.recipient,proof.ruleId,rule.amount,deadline,msg.sender,attestor,Status.PENDING);
-        emit GrantPending(claimId,proof.recipient,attestor,rule.amount,deadline);
+        grants[claimId]=Grant(proof.recipient,proof.ruleId,amount,deadline,msg.sender,attestor,Status.PENDING);
+        emit GrantPending(claimId,proof.recipient,attestor,amount,deadline);
     }
 
     /// @dev Isolated quota reservation reduces submit() stack pressure.

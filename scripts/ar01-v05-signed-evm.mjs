@@ -84,7 +84,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=20;
+let n=0;const N=22;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V05 MULTI-SOURCE SIGNED EVM REGRESSION ===");
 console.log("Solc:",solc.version());
@@ -448,6 +448,7 @@ await check("AR01-05F: unauthorized source governance and emergency toggles reve
  assert.equal(await read("registry",registry,"paused"),false);
  assert.equal(await read("registry",registry,"totalXP",[account]),beforeXP);
 });
+let recoveryClaim, recoveryProof, recoveryApprovals, recoveryBefore;
 await check("AR01-05G: revoked PENDING keeps quota and replay nullifiers consumed",async()=>{
  atDay(63);
  const p5=[account,rule,id("V05_REVOKED_PENDING_EVENT"),id("V05_REVOKED_PENDING_EVIDENCE"),786n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
@@ -457,6 +458,7 @@ await check("AR01-05G: revoked PENDING keeps quota and replay nullifiers consume
  assert.equal(beforeClaims,6n,"AR01-05G baseline requires six prior accepted claims");
  const receipt=await send("verifier","xp",xp,"submit",[p5,attestor,await proofSignature(p5),approvals]);
  const pending=await grantFromReceipt(receipt);
+ recoveryClaim=pending; recoveryProof=p5; recoveryApprovals=approvals; recoveryBefore=beforeClaims;
  assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),beforeClaims+1n);
  await admin("xp",xp,"revoke",[pending,id("V05_REVOKED_PENDING_BASELINE")]);
  assert.equal(await read("xp",xp,"grantStatus",[pending]),3n);
@@ -469,6 +471,32 @@ await check("AR01-05G: revoked PENDING keeps quota and replay nullifiers consume
  await send("verifier","xp",xp,"submit",[p5,attestor,await proofSignature(p5),approvals],0);
  assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),beforeClaims+1n);
 });
+await check("AR01-05H: only Safe may release revoked PENDING quota exactly once",async()=>{
+ const day=63n,week=9n;
+ const claims=await read("xp",xp,"claimsPerRule",[account,rule]);
+ const daily=await read("xp",xp,"dailyXP",[account,day]);
+ const weekly=await read("xp",xp,"weeklyXP",[account,week]);
+ const xpBefore=await read("registry",registry,"totalXP",[account]);
+ const supply=await read("token",token,"totalSupply");
+ assert.equal(claims,recoveryBefore+1n);
+ await send("outsider","xp",xp,"releaseRevokedPendingQuota",[recoveryClaim],0);
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),claims);
+ await admin("xp",xp,"releaseRevokedPendingQuota",[recoveryClaim]);
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),recoveryBefore);
+ assert.equal(await read("xp",xp,"dailyXP",[account,day]),daily-1000n);
+ assert.equal(await read("xp",xp,"weeklyXP",[account,week]),weekly-1000n);
+ await send("outsider","xp",xp,"releaseRevokedPendingQuota",[recoveryClaim],0);
+ await send("verifier","xp",xp,"submit",[recoveryProof,attestor,await proofSignature(recoveryProof),recoveryApprovals],0);
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),recoveryBefore);
+ assert.equal(await read("registry",registry,"totalXP",[account]),xpBefore);
+ assert.equal(await read("token",token,"totalSupply"),supply);
+});
+await check("AR01-05H: VALID-then-REVOKED grant cannot recover quota",async()=>{
+ await send("outsider","xp",xp,"releaseRevokedPendingQuota",[finalizedV05Claim],0);
+ await send("outsider","xp",xp,"releaseRevokedPendingQuota",[id("UNKNOWN_CLAIM")],0);
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),recoveryBefore);
+ assert.equal(await read("registry",registry,"totalXP",[account]),25n);
+});
 assert.equal(n,N);
-console.log("20/20 V05 SIGNED EVM RED TEAM EXECUTED");
+console.log("22/22 V05 SIGNED EVM RED TEAM EXECUTED");
 console.log("Scope: signer independence only; real-world evidence truth and collusion remain out of scope.");

@@ -44,18 +44,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Generate dependency lock candidate
-        working-directory: cookr
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-      - name: Verify clean lockfile installation
+      - name: Install locked EVM dependencies
         working-directory: cookr
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Archive candidate dependency lock
-        uses: actions/upload-artifact@v4
-        with:
-          name: rt6d8-package-lock-candidate
-          path: cookr/package-lock.json
-          if-no-files-found: error
       - name: Run signed EVM lifecycle scenarios
         working-directory: cookr
         env:

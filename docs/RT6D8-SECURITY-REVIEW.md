@@ -39,3 +39,9 @@ No audit, no deployment, no authorization to issue real-world XP follows from th
 - Successful `submit()` transaction gas samples: 324920, 290768, 307892, 290780, 307868, 290792. Successful `finalize()` samples: 73520, 56432. These are scenario-specific EthereumJS Cancun gas values, **not** a comparative before/after benchmark or a mainnet gas forecast.
 - Failed `finalize()` gas samples: 43712, 43695, 41452, 43749. All corresponding invalid-PENDING cases passed.
 - Action SHA pinning, committed lockfile and independent security review remain outstanding.
+
+## Follow-up verification work
+- All three RT6D.8 workflows now pin `actions/checkout` to `11bd71901bbe5b1630ceea73d27597364c9af683` and `actions/setup-node` to `49933ea5288caeca8642d1e84afbd3f7d6820020` (immutable action commits; verify upstream provenance in release review).
+- Added immutable baseline source snapshot at `tests/baselines/XPPolicyV04.rt6d7.sol` from Git blob `6d4b323e39a37990578f3d85c6f3f3b963106f7c`.
+- New deterministic comparison compiles both original and patched V04 with identical solc/optimizer/Cancun settings; reports ABI, bytecode sizes and Solidity storage layouts. This is **not** a before/after transaction-gas benchmark, and does not establish upgradeability safety.
+- The baseline comparison workflow is pending verification. Do not close the benchmark gate before its CI evidence is reviewed.

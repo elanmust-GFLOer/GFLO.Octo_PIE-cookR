@@ -84,7 +84,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=13;
+let n=0;const N=16;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V05 MULTI-SOURCE SIGNED EVM REGRESSION ===");
 console.log("Solc:",solc.version());
@@ -367,6 +367,46 @@ await check("AR01-05E: governance emergency pause blocks V05 submit and Registry
  assert.equal(await read("registry",registry,"totalXP",[account]),25n);
  assert.equal(await read("gate",gate,"effectiveTier",[account]),0n);
 });
+await check("AR01-05F: revoked XP prevents Tier 1 eligibility and repeat ignition has no side effects",async()=>{
+ assert.equal(await read("registry",registry,"totalXP",[account]),25n);
+ assert.equal(await read("gate",gate,"effectiveTier",[account]),0n);
+ await send("outsider","gate",gate,"requireEffectiveTier",[account,1],0);
+ await rejectedIgnition("Revoked-XP re-ignition");
+ assert.equal((await read("core",core,"getIdentity",[account])).tier,1n);
+});
+let incidentPendingClaim;
+await check("AR01-05F: Safe disables source B during PENDING and finalization fails closed",async()=>{
+ atDay(49);
+ const incident=[account,rule,id("V05_INCIDENT_PENDING_EVENT"),id("V05_INCIDENT_PENDING_EVIDENCE"),784n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const approvals=[await approval(incident,sourceId,issuerWallet),await approval(incident,sourceB,secondIssuer)].sort((a,b)=>a[0].localeCompare(b[0]));
+ const beforeXP=await read("xp",xp,"validEarnedXP",[account]);
+ const beforeClaims=await read("xp",xp,"claimsPerRule",[account,rule]);
+ incidentPendingClaim=await grantFromReceipt(await send("verifier","xp",xp,"submit",[incident,attestor,await proofSignature(incident),approvals]));
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),beforeClaims+1n);
+ assert.equal(await read("xp",xp,"validEarnedXP",[account]),beforeXP);
+ await send("outsider","xp",xp,"configureSource",[rule,sourceB,secondIssuer.address,groupB,false],0);
+ await admin("xp",xp,"configureSource",[rule,sourceB,secondIssuer.address,groupB,false]);
+ atDay(53);
+ await send("outsider","xp",xp,"finalize",[incidentPendingClaim],0);
+ assert.equal(await read("xp",xp,"grantStatus",[incidentPendingClaim]),1n);
+ assert.equal(await read("registry",registry,"totalXP",[account]),25n);
+});
+await check("AR01-05F: reactivation increments epoch; stale pending grant stays blocked; Safe revokes",async()=>{
+ const cfgBefore=await read("xp",xp,"sources",[rule,sourceB]);
+ await admin("xp",xp,"configureSource",[rule,sourceB,secondIssuer.address,groupB,true]);
+ const cfgAfter=await read("xp",xp,"sources",[rule,sourceB]);
+ // Read the complete public source tuple to verify epoch advanced, not merely active status.
+ const sourceRead=async()=>{const res=await vm.evm.runCall({caller:createAddressFromString("0x"+"fe".repeat(20)),to:createAddressFromString(xp),isStatic:true,gasLimit:2000000n,data:hexToBytes(abi.xp.encodeFunctionData("sources",[rule,sourceB]))});if(res.execResult.exceptionError)throw Error("source read reverted");return abi.xp.decodeFunctionResult("sources",bytesToHex(res.execResult.returnValue));};
+ const current=await sourceRead();
+ assert.equal(current[3],true);
+ await send("outsider","xp",xp,"finalize",[incidentPendingClaim],0);
+ assert.equal(await read("xp",xp,"grantStatus",[incidentPendingClaim]),1n);
+ await send("outsider","xp",xp,"revoke",[incidentPendingClaim,id("INCIDENT_REVOKED")],0);
+ await admin("xp",xp,"revoke",[incidentPendingClaim,id("INCIDENT_REVOKED")]);
+ assert.equal(await read("xp",xp,"grantStatus",[incidentPendingClaim]),3n);
+ assert.equal(await read("registry",registry,"totalXP",[account]),25n);
+ assert.equal(await read("gate",gate,"effectiveTier",[account]),0n);
+});
 assert.equal(n,N);
-console.log("13/13 V05 SIGNED EVM RED TEAM EXECUTED");
+console.log("16/16 V05 SIGNED EVM RED TEAM EXECUTED");
 console.log("Scope: signer independence only; real-world evidence truth and collusion remain out of scope.");

@@ -87,7 +87,8 @@ async function read(k,address,fn,args=[]){
   const res=(await vm.evm.runCall({caller:viewer,to:createAddressFromString(address),
    block,isStatic:true,gasLimit:2000000n,data:hexToBytes(abi[k].encodeFunctionData(fn,args))})).execResult;
   if(res.exceptionError)throw Error("read "+k+"."+fn+": "+res.exceptionError.error);
-  return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
+  const decoded=abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue));
+  return fn==="grants" ? decoded : decoded[0];
  }finally{await vm.stateManager.revert();}
 }
 let n=0;const N=14;

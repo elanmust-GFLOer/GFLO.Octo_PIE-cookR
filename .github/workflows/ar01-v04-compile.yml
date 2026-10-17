@@ -1,0 +1,33 @@
+name: AR01 V04 Solidity Compile
+on:
+  push:
+    branches:
+      - audit/ar01-contract-inventory-20261017
+    paths:
+      - 'contracts/XPPolicyV04SourceBound.sol'
+      - '.github/workflows/ar01-v04-compile.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compile-v04:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned compiler and library
+        run: |
+          mkdir -p _v04deps
+          cd _v04deps
+          npm init -y
+          npm install --no-save --no-package-lock --ignore-scripts solc@0.8.34 @openzeppelin/contracts@5.4.0
+      - name: Compile V04 candidate
+        run: |
+          ln -s _v04deps/node_modules node_modules
+          mkdir -p _v04build
+          ./node_modules/.bin/solcjs --base-path . --include-path node_modules --bin --abi -o _v04build contracts/XPPolicyV04SourceBound.sol
+          test -s _v04build/contracts_XPPolicyV04SourceBound_sol_XPPolicyV04SourceBound.bin
+          echo "V04 SOLIDITY COMPILE PASS"

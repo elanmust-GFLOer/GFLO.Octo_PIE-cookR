@@ -1,5 +1,11 @@
 name: AR01 Signed EVM Red Team 6C
 on:
+  push:
+    branches:
+      - audit/ar01-contract-inventory-20261017
+    paths:
+      - '.github/workflows/ar01-signed-evm-6c.yml'
+      - 'scripts/rt6c-source-authenticity.mjs'
   workflow_dispatch:
 permissions:
   contents: read

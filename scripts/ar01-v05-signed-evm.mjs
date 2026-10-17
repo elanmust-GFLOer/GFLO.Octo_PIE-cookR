@@ -182,6 +182,7 @@ const p=[account,rule,id("V05_FICTIONAL_EVENT"),id("V05_FICTIONAL_EVIDENCE"),777
 await check("V05 Safe governance and identity bootstrap",async()=>{
  assert.equal(await read("safe",proxy,"getThreshold"),2n);
  assert.equal(await read("xp",xp,"owner"),proxy);
+ await admin("core",core,"bindIgnition",[ignition]);
  await send("alice","core",core,"createIdentity",[3]);
  await admin("xp",xp,"setVerifierRole",[verifierAddress,2]);
  // Allow independent positive controls across the V05 adversarial scenarios; each still obeys daily/weekly caps.
@@ -332,6 +333,8 @@ await check("AR01-05E: real signed Tier 1 ignition burns GFLO against V05 canoni
  assert.equal(await read("registry",registry,"totalXP",[account]),1025n);
  assert.equal(await read("gate",gate,"effectiveTier",[account]),0n);
  const before=await read("token",token,"totalSupply");
+ await send("alice","token",token,"approve",[ignition,tier1Fee]);
+ assert.equal(await read("token",token,"allowance",[account,ignition]),tier1Fee);
  await send("alice","ignition",ignition,"ignite");
  assert.equal((await read("core",core,"getIdentity",[account])).tier,1n);
  assert.equal(await read("gate",gate,"effectiveTier",[account]),1n);

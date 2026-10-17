@@ -323,6 +323,7 @@ await check("RT6D7-09 HIGH FINDING: Safe can authorize colluding issuer and pass
  assert.equal(await read("registry",registry,"totalXP",[account]),before);
 });
 await check("RT6D8-01 revoked PENDING source approval cannot finalize or credit XP",async()=>{
+ atDay(7);
  const pending=[account,rule,id("RT6D8_REVOKED_PENDING_EVENT"),id("RT6D8_REVOKED_PENDING_EVIDENCE"),916n,
    BigInt(activeTimestamp),BigInt(activeTimestamp)+5n*86400n];
  const digest=await read("xp",xp,"proofDigest",[pending]);
@@ -332,11 +333,11 @@ await check("RT6D8-01 revoked PENDING source approval cannot finalize or credit 
  const pendingClaim=await grantFromReceipt(receipt);
  const before=await read("registry",registry,"totalXP",[account]);
  await admin("bound",bound,"revoke",[digest]);
- atDay(9);
+ atDay(10);
  assert.equal(await read("bound",bound,"isValidSignature",[digest,"0x"]),sigInvalid);
  await send("outsider","xp",xp,"finalize",[pendingClaim],0);
  assert.equal(await read("registry",registry,"totalXP",[account]),before);
- assert.equal((await read("xp",xp,"grants",[pendingClaim]))[6],1n);
+ assert.equal((await read("xp",xp,"grants",[pendingClaim]))[7],1n);
 });
 await check("RT6D7-10 Safe revocation and Registry pause still fail closed",async()=>{
  await admin("xp",xp,"revoke",[claimId,id("RT6D5_GOVERNANCE_REVOCATION")]);

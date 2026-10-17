@@ -461,8 +461,10 @@ await check("AR01-05G: revoked PENDING keeps quota and replay nullifiers consume
  await admin("xp",xp,"revoke",[pending,id("V05_REVOKED_PENDING_BASELINE")]);
  assert.equal(await read("xp",xp,"grantStatus",[pending]),3n);
  assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),beforeClaims+1n);
- assert.equal(await read("xp",xp,"usedEvents",[p5[2]]),true);
- assert.equal(await read("xp",xp,"usedEvidence",[p5[3]]),true);
+ const eventKey=keccak256(AbiCoder.defaultAbiCoder().encode(["bytes32"],[p5[2]]));
+ const evidenceKey=keccak256(AbiCoder.defaultAbiCoder().encode(["bytes32"],[p5[3]]));
+ assert.equal(await read("xp",xp,"usedEvents",[eventKey]),true);
+ assert.equal(await read("xp",xp,"usedEvidence",[evidenceKey]),true);
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),beforeXP);
  await send("verifier","xp",xp,"submit",[p5,attestor,await proofSignature(p5),approvals],0);
  assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),beforeClaims+1n);

@@ -84,7 +84,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=8;
+let n=0;const N=9;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V04 SOURCE-BOUND SIGNED EVM REGRESSION ===");
 console.log("Solc:",solc.version());
@@ -172,7 +172,7 @@ async function rejected(k,address,fn,args=[],caller="outsider"){
  await send(caller,k,address,fn,args,0);
  assert.equal(await read("registry",registry,"totalXP",[account]),before);
 }
-await check("Safe 2/3 controls fresh XPPolicyV03 and Gate can read canonical XP",async()=>{
+await check("Safe 2/3 controls fresh XPPolicyV04SourceBound and Gate can read canonical XP",async()=>{
  assert.equal(await read("safe",proxy,"getThreshold"),2n);
  assert.equal(await read("xp",xp,"owner"),proxy);
  assert.equal(await read("core",core,"bindingAuthority"),proxy);
@@ -262,5 +262,5 @@ await check("Replay after revocation fails and paused Registry fails closed",asy
  assert.equal((await read("core",core,"getIdentity",[account])).tier,1n);
 });
 assert.equal(n,N);
-console.log("8/8 V04 SOURCE-BOUND SIGNED EVM REGRESSION EXECUTED");
+console.log("9/9 V04 SOURCE-BOUND SIGNED EVM REGRESSION EXECUTED");
 console.log("Scope: source authorization enforced for this fixture; independent issuer compromise and real-world event truth remain out of scope.");

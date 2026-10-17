@@ -41,6 +41,7 @@ contract XPPolicyV04 is EIP712 {
         uint64 finalizesAt;
         address verifier;
         address attestor;
+        bytes32 proofDigest;
         Status status;
     }
 
@@ -144,7 +145,7 @@ contract XPPolicyV04 is EIP712 {
         usedEvidence[evidenceKey]=true;
         usedProofNonces[nonceKey]=true;
         uint64 deadline=uint64(block.timestamp+CHALLENGE_PERIOD);
-        grants[claimId]=Grant(proof.recipient,proof.ruleId,rule.amount,deadline,msg.sender,attestor,Status.PENDING);
+        grants[claimId]=Grant(proof.recipient,proof.ruleId,rule.amount,deadline,msg.sender,attestor,digest,Status.PENDING);
         emit GrantPending(claimId,proof.recipient,attestor,rule.amount,deadline);
     }
 
@@ -168,6 +169,10 @@ contract XPPolicyV04 is EIP712 {
         Grant storage grant=grants[claimId];
         if(grant.status!=Status.PENDING) revert BadGrantStatus();
         if(block.timestamp<grant.finalizesAt) revert TooEarly();
+        // ERC-1271 validity is stateful: issuer disable, source pause, digest revoke and expiry
+        // must invalidate a pending claim at the point it would become canonical XP.
+        if(grant.attestor != sourceBoundAttestor || grant.attestor.codehash != sourceBoundRuntimeHash ||
+           !SignatureChecker.isValidSignatureNow(grant.attestor, grant.proofDigest, hex"")) revert InvalidProof();
         grant.status=Status.VALID;
         validEarnedXP[grant.recipient]+=grant.amount;
         emit GrantFinalized(claimId,grant.recipient,grant.amount);

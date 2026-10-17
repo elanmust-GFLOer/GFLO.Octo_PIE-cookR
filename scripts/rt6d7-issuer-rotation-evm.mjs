@@ -5,7 +5,6 @@ import fs from "node:fs";
 import path from "node:path";
 import {execFileSync} from "node:child_process";
 import {createRequire} from "node:module";
-import {homedir} from "node:os";
 import {join} from "node:path";
 import {createVM,runTx} from "@ethereumjs/vm";
 import {createLegacyTx} from "@ethereumjs/tx";
@@ -13,20 +12,23 @@ import {createBlock} from "@ethereumjs/block";
 import {Common,Mainnet,Hardfork} from "@ethereumjs/common";
 import {createAccount,createAddressFromPrivateKey,createAddressFromString,hexToBytes,bytesToHex} from "@ethereumjs/util";
 
-const repo=join(homedir(),"gflo-pie"),req=createRequire(join(repo,"package.json"));
-const localReq=createRequire(import.meta.url);
+const repo=process.env.GFLO_PIE_ROOT;
+if(!repo || !fs.existsSync(join(repo,"package.json"))) throw Error("GFLO_PIE_ROOT must point to checked-out gflo-pie");
+const req=createRequire(import.meta.url);
+const localReq=req;
 const solc=req("solc"),{Interface,Wallet,getCreateAddress,ZeroAddress,parseUnits,id,keccak256}=req("ethers");
-const root=join(process.cwd(),"node_modules/@safe-global/safe-smart-account/build/artifacts/contracts");
+const root=process.env.SAFE_ARTIFACTS_ROOT;
+if(!root || !fs.existsSync(join(root,"Safe.sol/Safe.json"))) throw Error("SAFE_ARTIFACTS_ROOT must contain official Safe artifacts");
 const artifacts={
  safe:JSON.parse(fs.readFileSync(join(root,"Safe.sol/Safe.json"),"utf8")),
  factory:JSON.parse(fs.readFileSync(join(root,"proxies/SafeProxyFactory.sol/SafeProxyFactory.json"),"utf8"))
 };
 const files={"XPPolicyV03.sol":"XPPolicyV03","PIECoreIgnitionV01.sol":"PIECoreIgnitionV01","TrustedXPSourceRegistryV02.sol":"TrustedXPSourceRegistryV02","GFLOIgnitionV01.sol":"GFLOIgnitionV01","GFLOFixedSupplyV01.sol":"GFLOFixedSupplyV01","EffectiveTierGateV01.sol":"EffectiveTierGateV01"};
-const sources=Object.fromEntries(Object.keys(files).map(f=>[f,{content:execFileSync("git",["show","origin/feature/pie-core-v0.2:contracts/"+f],{cwd:repo,encoding:"utf8"})}]));
+const sources=Object.fromEntries(Object.keys(files).map(f=>[f,{content:fs.readFileSync(join(repo,"contracts",f),"utf8")}]));
 // Remove V03 from the compilation unit: V04 declares the same IPIEForVerifiedXP interface.
 delete sources["XPPolicyV03.sol"];
-sources["XPPolicyV04.sol"]={content:fs.readFileSync(join(homedir(),"GFLO.Octo_PIE-cookR/contracts/XPPolicyV04.sol"),"utf8")};
-sources["GFLOSourceBoundAttestorV01.sol"]={content:fs.readFileSync(join(homedir(),"GFLO.Octo_PIE-cookR/contracts/GFLOSourceBoundAttestorV01.sol"),"utf8")};
+sources["XPPolicyV04.sol"]={content:fs.readFileSync(join(path.dirname(new URL(import.meta.url).pathname),"../contracts/XPPolicyV04.sol"),"utf8")};
+sources["GFLOSourceBoundAttestorV01.sol"]={content:fs.readFileSync(join(path.dirname(new URL(import.meta.url).pathname),"../contracts/GFLOSourceBoundAttestorV01.sol"),"utf8")};
 const ozRoot=path.dirname(localReq.resolve("@openzeppelin/contracts/package.json"));
 const compiled=JSON.parse(solc.compile(JSON.stringify({language:"Solidity",sources,settings:{optimizer:{enabled:true,runs:200},evmVersion:"cancun",outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}}),{import:(name)=>{
  try{
@@ -53,6 +55,7 @@ for(const [name,key] of Object.entries(keys)){
 }
 const owners=["11","22","33"].map(c=>new Wallet("0x"+c.repeat(32)));
 const TEST_GAS=22000000n,GAS_PRICE=2000000000n;
+const gasSamples=[];
 let activeTimestamp=1000n;
 const atDay=day=>{ activeTimestamp=BigInt(day)*86400n+1000n; };
 async function tx(name,to,data,status=1){
@@ -75,7 +78,9 @@ async function deploy(name,k,args=[]){
  return {address,receipt};
 }
 async function send(name,k,address,fn,args=[],status=1){
- return tx(name,address,abi[k].encodeFunctionData(fn,args),status);
+ const result=await tx(name,address,abi[k].encodeFunctionData(fn,args),status);
+ if(k==="xp" && ["submit","finalize"].includes(fn)) gasSamples.push({function:fn,status,gas:Number(result.totalGasSpent)});
+ return result;
 }
 async function read(k,address,fn,args=[]){
  const viewer=createAddressFromString("0x"+"fe".repeat(20));
@@ -85,10 +90,11 @@ async function read(k,address,fn,args=[]){
   const res=(await vm.evm.runCall({caller:viewer,to:createAddressFromString(address),
    block,isStatic:true,gasLimit:2000000n,data:hexToBytes(abi[k].encodeFunctionData(fn,args))})).execResult;
   if(res.exceptionError)throw Error("read "+k+"."+fn+": "+res.exceptionError.error);
-  return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
+  const decoded=abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue));
+  return fn==="grants" ? decoded : decoded[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=10;
+let n=0;const N=14;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO RED TEAM 6D.7 — GOVERNANCE SOURCE ISSUER ROTATION ATTACK ===");
 console.log("Solc:",solc.version());
@@ -198,7 +204,7 @@ async function rejectedProof(proofData,signer=bound,sig="0x",who="verifier"){
 const sigMagic="0x1626ba7e",sigInvalid="0xffffffff";
 const proofDigest=await read("xp",xp,"proofDigest",[proof]);
 const eventKey=id("RT6D5_SOURCE_EVENT_ORIGIN_1");
-const approvalExpiry=6000n; // claimId declared in shared fixture
+const approvalExpiry=400000n; // claimId declared in shared fixture
 
 await check("RT6D7-01 Safe config: 2/3, XPPolicy fresh, only source-bound attestor authorized",async()=>{
  assert.equal(await read("safe",proxy,"getThreshold"),2n);
@@ -209,7 +215,7 @@ await check("RT6D7-01 Safe config: 2/3, XPPolicy fresh, only source-bound attest
  await admin("registry",registry,"activatePolicy");
  await admin("registry",registry,"setPaused",[false]);
  await send("alice","core",core,"createIdentity",[3]);
- await admin("xp",xp,"registerRule",[rule,1000,4]);
+ await admin("xp",xp,"registerRule",[rule,1000,8]);
  await admin("xp",xp,"setVerifierRole",[verifierAddress,2]);
  await admin("bound",bound,"setIssuer",[sourceIssuer.address,true]);
  assert.equal(await read("xp",xp,"sourceBoundAttestor"),bound);
@@ -260,7 +266,7 @@ await check("RT6D7-06 authorized source expiry, pause and governance revoke fail
  assert.equal(await read("bound",bound,"isValidSignature",[secondDigest,"0x"]),sigInvalid);
  await rejectedProof(second);
  atDay(3);
- assert.equal(await read("bound",bound,"isValidSignature",[proofDigest,"0x"]),sigInvalid);
+ assert.equal(await read("bound",bound,"isValidSignature",[proofDigest,"0x"]),sigMagic);
  await send("outsider","xp",xp,"finalize",[claimId]);
  assert.equal(await read("registry",registry,"totalXP",[account]),1025n);
 });
@@ -295,7 +301,7 @@ await check("RT6D7-09 HIGH FINDING: Safe can authorize colluding issuer and pass
    BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
  const forgedDigest=await read("xp",xp,"proofDigest",[falselyClaimed]);
  const issuerEventKey=id("RT6D7_COLLUSION_ISSUER_KEY");
- const expiresAt=BigInt(activeTimestamp)+3600n;
+ const expiresAt=BigInt(activeTimestamp)+4n*86400n;
  // Before Safe changes the allowlist, this source key cannot approve anything.
  const unauthorizedSig=await sourceSignature(forgedDigest,issuerEventKey,expiresAt,colludingIssuer);
  await send("outsider","bound",bound,"registerApproval",[forgedDigest,issuerEventKey,expiresAt,colludingIssuer.address,unauthorizedSig],0);
@@ -322,6 +328,54 @@ await check("RT6D7-09 HIGH FINDING: Safe can authorize colluding issuer and pass
  await admin("xp",xp,"revoke",[falseClaim,id("RT6D7_FRAUD_SOURCE_REVIEW")]);
  assert.equal(await read("registry",registry,"totalXP",[account]),before);
 });
+await check("RT6D8-01 revoked PENDING source approval cannot finalize or credit XP",async()=>{
+ atDay(7);
+ const pending=[account,rule,id("RT6D8_REVOKED_PENDING_EVENT"),id("RT6D8_REVOKED_PENDING_EVIDENCE"),916n,
+   BigInt(activeTimestamp),BigInt(activeTimestamp)+5n*86400n];
+ const digest=await read("xp",xp,"proofDigest",[pending]);
+ const key=id("RT6D8_SOURCE_EVENT_KEY");
+ await auth(digest,key,BigInt(activeTimestamp)+5n*86400n);
+ const receipt=await send("verifier","xp",xp,"submit",[pending,bound,"0x"]);
+ const pendingClaim=await grantFromReceipt(receipt);
+ const before=await read("registry",registry,"totalXP",[account]);
+ await admin("bound",bound,"revoke",[digest]);
+ atDay(10);
+ assert.equal(await read("bound",bound,"isValidSignature",[digest,"0x"]),sigInvalid);
+ await send("outsider","xp",xp,"finalize",[pendingClaim],0);
+ assert.equal(await read("registry",registry,"totalXP",[account]),before);
+ assert.equal((await read("xp",xp,"grants",[pendingClaim]))[7],1n);
+});
+async function pendingForRT6D8(suffix,day,ttlDays=5n){
+ atDay(day);
+ const p=[account,rule,id("RT6D8_EVENT_"+suffix),id("RT6D8_EVIDENCE_"+suffix),BigInt(1000+day),
+  activeTimestamp,activeTimestamp+ttlDays*86400n];
+ const digest=await read("xp",xp,"proofDigest",[p]);
+ await auth(digest,id("RT6D8_KEY_"+suffix),activeTimestamp+ttlDays*86400n);
+ const claim=await grantFromReceipt(await send("verifier","xp",xp,"submit",[p,bound,"0x"]));
+ return {claim,digest,baseline:await read("registry",registry,"totalXP",[account])};
+}
+async function rejectedFinalizationAt(day,item){
+ atDay(day);
+ await send("outsider","xp",xp,"finalize",[item.claim],0);
+ assert.equal(await read("registry",registry,"totalXP",[account]),item.baseline);
+ assert.equal((await read("xp",xp,"grants",[item.claim]))[7],1n);
+}
+await check("RT6D8-02 disabled issuer blocks PENDING finalization",async()=>{
+ const item=await pendingForRT6D8("ISSUER_DISABLED",11);
+ await admin("bound",bound,"setIssuer",[sourceIssuer.address,false]);
+ await rejectedFinalizationAt(14,item);
+ await admin("bound",bound,"setIssuer",[sourceIssuer.address,true]);
+});
+await check("RT6D8-03 source pause blocks PENDING finalization",async()=>{
+ const item=await pendingForRT6D8("SOURCE_PAUSED",15);
+ await admin("bound",bound,"setPaused",[true]);
+ await rejectedFinalizationAt(18,item);
+ await admin("bound",bound,"setPaused",[false]);
+});
+await check("RT6D8-04 expired approval blocks PENDING finalization",async()=>{
+ const item=await pendingForRT6D8("SOURCE_EXPIRED",19,1n);
+ await rejectedFinalizationAt(22,item);
+});
 await check("RT6D7-10 Safe revocation and Registry pause still fail closed",async()=>{
  await admin("xp",xp,"revoke",[claimId,id("RT6D5_GOVERNANCE_REVOCATION")]);
  assert.equal(await read("registry",registry,"totalXP",[account]),25n);
@@ -332,5 +386,9 @@ await check("RT6D7-10 Safe revocation and Registry pause still fail closed",asyn
  await send("outsider","gate",gate,"requireEffectiveTier",[account,1],0);
 });
 assert.equal(n,N);
-console.log("RED TEAM 6D.7 — 10/10 signed EVM scenarios executed.");
+const grantGetter=artifacts.xp.abi.find(x=>x.type==="function" && x.name==="grants");
+assert.ok(grantGetter?.outputs?.some(x=>x.name==="proofDigest"),"Grant getter must expose proofDigest");
+console.log("RT6D8 ABI grants outputs:",JSON.stringify(grantGetter.outputs.map(x=>({name:x.name,type:x.type}))));
+console.log("RT6D8 GAS samples:",JSON.stringify(gasSamples));
+console.log("RED TEAM 6D.7 + 6D.8 — 14/14 signed EVM scenarios executed.");
 console.log("RT6C HIGH reproduced: Safe can approve colluding issuer who attests fictional completion even with pinned V04. Revocation required; no audit.");

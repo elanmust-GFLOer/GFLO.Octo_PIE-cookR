@@ -1,0 +1,22 @@
+{
+  "name": "gflo-rt6d8-evm-harness",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated EVM regression harness; never deploys contracts",
+  "scripts": {
+    "test:evm": "node scripts/rt6d7-issuer-rotation-evm.mjs",
+    "test:static": "node --test tests/rt6d8-finalize-static.test.mjs"
+  },
+  "dependencies": {
+    "solc": "0.8.34",
+    "ethers": "6.17.0",
+    "@ethereumjs/vm": "^10.0.0",
+    "@ethereumjs/tx": "^10.0.0",
+    "@ethereumjs/block": "^10.0.0",
+    "@ethereumjs/common": "^10.0.0",
+    "@ethereumjs/util": "^10.0.0",
+    "@openzeppelin/contracts": "^5.0.0",
+    "@safe-global/safe-smart-account": "1.5.0"
+  }
+}

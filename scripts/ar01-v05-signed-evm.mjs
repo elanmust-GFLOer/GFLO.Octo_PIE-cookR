@@ -186,7 +186,7 @@ await check("V05 Safe governance and identity bootstrap",async()=>{
  await send("alice","core",core,"createIdentity",[3]);
  await admin("xp",xp,"setVerifierRole",[verifierAddress,2]);
  // Allow independent positive controls across the V05 adversarial scenarios; each still obeys daily/weekly caps.
- await admin("xp",xp,"registerRule",[rule,1000,6]);
+ await admin("xp",xp,"registerRule",[rule,1000,7]);
  await admin("xp",xp,"setAttestor",[rule,attestor,true]);
  await admin("xp",xp,"configureSource",[rule,sourceId,issuer,groupA,true]);
  await admin("xp",xp,"configureSource",[rule,sourceB,secondIssuer.address,groupB,true]);
@@ -454,6 +454,7 @@ await check("AR01-05G: revoked PENDING keeps quota and replay nullifiers consume
  const approvals=[await approval(p5,sourceId,issuerWallet),await approval(p5,sourceB,secondIssuer)].sort((a,b)=>a[0].localeCompare(b[0]));
  const beforeClaims=await read("xp",xp,"claimsPerRule",[account,rule]);
  const beforeXP=await read("xp",xp,"validEarnedXP",[account]);
+ assert.equal(beforeClaims,6n,"AR01-05G baseline requires six prior accepted claims");
  const receipt=await send("verifier","xp",xp,"submit",[p5,attestor,await proofSignature(p5),approvals]);
  const pending=await grantFromReceipt(receipt);
  assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),beforeClaims+1n);

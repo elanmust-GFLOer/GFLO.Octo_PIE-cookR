@@ -1,0 +1,34 @@
+name: AR01 XP Source Gate
+on:
+  push:
+    branches:
+      - audit/ar01-contract-inventory-20261017
+    paths:
+      - 'tests/ar01-xp-source-gate.test.mjs'
+      - '.github/workflows/ar01-xp-source-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  static-source-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout integration repository
+        uses: actions/checkout@v4
+      - name: Checkout PIE development sources
+        uses: actions/checkout@v4
+        with:
+          repository: elanmust-GFLOer/gflo-pie
+          ref: feature/pie-core-v0.2
+          path: _gflo_pie
+          persist-credentials: false
+      - name: Record provenance
+        run: |
+          echo "COOKR_SHA=$(git rev-parse HEAD)"
+          echo "PIE_SHA=$(git -C _gflo_pie rev-parse HEAD)"
+          node --version
+      - name: Run static compatibility gate
+        env:
+          GFLO_PIE_DIR: _gflo_pie
+        run: node --test tests/ar01-xp-source-gate.test.mjs

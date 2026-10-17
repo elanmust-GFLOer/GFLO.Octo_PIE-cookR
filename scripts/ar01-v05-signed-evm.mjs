@@ -84,7 +84,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=10;
+let n=0;const N=13;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V05 MULTI-SOURCE SIGNED EVM REGRESSION ===");
 console.log("Solc:",solc.version());
@@ -207,10 +207,12 @@ await check("Different source IDs with identical issuer/control group fail close
  assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),0n);
  await admin("xp",xp,"configureSource",[rule,sourceB,secondIssuer.address,groupB,true]);
 });
+let finalizedV05Claim;
 await check("Valid independent 2-of-2 approvals finalize only after challenge",async()=>{
  const approvals=[await approval(p,sourceId,issuerWallet),await approval(p,sourceB,secondIssuer)].sort((a,b)=>a[0].localeCompare(b[0]));
  const receipt=await send("verifier","xp",xp,"submit",[p,attestor,await proofSignature(p),approvals]);
  const claim=await grantFromReceipt(receipt);
+ finalizedV05Claim=claim;
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),0n);
  await send("outsider","xp",xp,"finalize",[claim],0);
  atDay(4);
@@ -326,6 +328,42 @@ await check("AR01-05D: Safe codehash-pins V05 in Registry and TierGate reads can
  await admin("registry",registry,"setPaused",[false]);
  assert.equal(await read("registry",registry,"totalXP",[account]),1025n);
 });
+await check("AR01-05E: real signed Tier 1 ignition burns GFLO against V05 canonical XP",async()=>{
+ assert.equal(await read("registry",registry,"totalXP",[account]),1025n);
+ assert.equal(await read("gate",gate,"effectiveTier",[account]),0n);
+ const before=await read("token",token,"totalSupply");
+ await send("alice","ignition",ignition,"ignite");
+ assert.equal((await read("core",core,"getIdentity",[account])).tier,1n);
+ assert.equal(await read("gate",gate,"effectiveTier",[account]),1n);
+ assert.equal(await read("token",token,"totalSupply"),before-tier1Fee);
+});
+await check("AR01-05E: Safe revocation drops effective tier, preserves achieved tier and burn",async()=>{
+ const before=await read("token",token,"totalSupply");
+ await admin("xp",xp,"revoke",[finalizedV05Claim,id("V05_REVOKED_FRAUD")]);
+ assert.equal(await read("xp",xp,"validEarnedXP",[account]),0n);
+ assert.equal(await read("registry",registry,"totalXP",[account]),25n);
+ assert.equal((await read("core",core,"getIdentity",[account])).tier,1n);
+ assert.equal(await read("gate",gate,"effectiveTier",[account]),0n);
+ await send("outsider","gate",gate,"requireEffectiveTier",[account,1],0);
+ assert.equal(await read("token",token,"totalSupply"),before);
+});
+await check("AR01-05E: governance emergency pause blocks V05 submit and Registry canonical reads",async()=>{
+ atDay(42);
+ const p3=[account,rule,id("V05_EMERGENCY_EVENT"),id("V05_EMERGENCY_EVIDENCE"),783n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const approvals=[await approval(p3,sourceId,issuerWallet),await approval(p3,sourceB,secondIssuer)].sort((a,b)=>a[0].localeCompare(b[0]));
+ await send("outsider","xp",xp,"setPaused",[true],0);
+ await admin("xp",xp,"setPaused",[true]);
+ const before=await read("xp",xp,"claimsPerRule",[account,rule]);
+ await send("verifier","xp",xp,"submit",[p3,attestor,await proofSignature(p3),approvals],0);
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),before);
+ await admin("registry",registry,"setPaused",[true]);
+ await assert.rejects(()=>read("registry",registry,"totalXP",[account]));
+ await assert.rejects(()=>read("gate",gate,"effectiveTier",[account]));
+ await admin("registry",registry,"setPaused",[false]);
+ await admin("xp",xp,"setPaused",[false]);
+ assert.equal(await read("registry",registry,"totalXP",[account]),25n);
+ assert.equal(await read("gate",gate,"effectiveTier",[account]),0n);
+});
 assert.equal(n,N);
-console.log("10/10 V05 SIGNED EVM RED TEAM EXECUTED");
+console.log("13/13 V05 SIGNED EVM RED TEAM EXECUTED");
 console.log("Scope: signer independence only; real-world evidence truth and collusion remain out of scope.");

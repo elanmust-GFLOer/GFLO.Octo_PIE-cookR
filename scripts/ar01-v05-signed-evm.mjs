@@ -84,7 +84,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=5;
+let n=0;const N=6;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V05 MULTI-SOURCE SIGNED EVM REGRESSION ===");
 console.log("Solc:",solc.version());
@@ -229,6 +229,28 @@ await check("Rotation of second source blocks pending grant",async()=>{
  await send("outsider","xp",xp,"finalize",[claim],0);
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),1000n);
 });
+await check("AR01-05C: tampered evidence rejects both signatures without state mutation",async()=>{
+ atDay(14);
+ const original=[account,rule,id("V05_INTEGRITY_EVENT"),id("V05_INTEGRITY_EVIDENCE"),779n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const mutated=[...original];
+ mutated[3]=id("V05_TAMPERED_EVIDENCE");
+ const signed=[await approval(original,sourceId,issuerWallet),await approval(original,sourceB,secondIssuer)].sort((a,b)=>a[0].localeCompare(b[0]));
+ const beforeXP=await read("xp",xp,"validEarnedXP",[account]);
+ const beforeClaims=await read("xp",xp,"claimsPerRule",[account,rule]);
+ const day=activeTimestamp/86400n,week=activeTimestamp/(7n*86400n);
+ const beforeDay=await read("xp",xp,"dailyXP",[account,day]);
+ const beforeWeek=await read("xp",xp,"weeklyXP",[account,week]);
+ await send("verifier","xp",xp,"submit",[mutated,attestor,await proofSignature(original),signed],0);
+ assert.equal(await read("xp",xp,"validEarnedXP",[account]),beforeXP);
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),beforeClaims);
+ assert.equal(await read("xp",xp,"dailyXP",[account,day]),beforeDay);
+ assert.equal(await read("xp",xp,"weeklyXP",[account,week]),beforeWeek);
+ assert.equal(await read("xp",xp,"usedEvents",[original[2]]),false);
+ assert.equal(await read("xp",xp,"usedEvidence",[original[3]]),false);
+ const receipt=await send("verifier","xp",xp,"submit",[original,attestor,await proofSignature(original),signed]);
+ assert.ok(await grantFromReceipt(receipt));
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),beforeClaims+1n);
+});
 assert.equal(n,N);
-console.log("5/5 V05 SIGNED EVM RED TEAM EXECUTED");
+console.log("6/6 V05 SIGNED EVM RED TEAM EXECUTED");
 console.log("Scope: signer independence only; real-world evidence truth and collusion remain out of scope.");

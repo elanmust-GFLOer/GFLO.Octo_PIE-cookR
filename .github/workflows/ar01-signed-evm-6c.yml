@@ -50,8 +50,8 @@ jobs:
           ln -s "$GITHUB_WORKSPACE/_evm_deps/node_modules" "$HOME/gflo-pie/node_modules"
           ln -s "$GITHUB_WORKSPACE/_gas/contracts" "$HOME/GasFeeLoop-/contracts"
           git -C "$HOME/gflo-pie" init
-          git -C "$HOME/gflo-pie" remote add origin "$GITHUB_WORKSPACE/_pie"
-          git -C "$HOME/gflo-pie" fetch origin feature/pie-core-v0.2
+          git -C "$HOME/gflo-pie" remote add origin "https://github.com/elanmust-GFLOer/gflo-pie.git"
+          git -C "$HOME/gflo-pie" fetch --depth=1 origin feature/pie-core-v0.2
           ln -s "$GITHUB_WORKSPACE/_evm_deps/node_modules" node_modules
       - name: Execute signed local EVM red team
         run: node scripts/rt6c-source-authenticity.mjs

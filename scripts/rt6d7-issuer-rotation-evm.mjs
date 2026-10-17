@@ -14,8 +14,8 @@ import {createAccount,createAddressFromPrivateKey,createAddressFromString,hexToB
 
 const repo=process.env.GFLO_PIE_ROOT;
 if(!repo || !fs.existsSync(join(repo,"package.json"))) throw Error("GFLO_PIE_ROOT must point to checked-out gflo-pie");
-const req=createRequire(join(repo,"package.json"));
-const localReq=createRequire(import.meta.url);
+const req=createRequire(import.meta.url);
+const localReq=req;
 const solc=req("solc"),{Interface,Wallet,getCreateAddress,ZeroAddress,parseUnits,id,keccak256}=req("ethers");
 const root=process.env.SAFE_ARTIFACTS_ROOT;
 if(!root || !fs.existsSync(join(root,"Safe.sol/Safe.json"))) throw Error("SAFE_ARTIFACTS_ROOT must contain official Safe artifacts");

@@ -1,4 +1,4 @@
-name: RT6D8 lockfile bootstrap (one-time)
+name: RT6D8 lockfile bootstrap (completed; one-time)
 on:
   push:
     branches:

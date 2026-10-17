@@ -392,9 +392,7 @@ await check("AR01-05F: Safe disables source B during PENDING and finalization fa
  assert.equal(await read("registry",registry,"totalXP",[account]),25n);
 });
 await check("AR01-05F: reactivation increments epoch; stale pending grant stays blocked; Safe revokes",async()=>{
- const cfgBefore=await read("xp",xp,"sources",[rule,sourceB]);
  await admin("xp",xp,"configureSource",[rule,sourceB,secondIssuer.address,groupB,true]);
- const cfgAfter=await read("xp",xp,"sources",[rule,sourceB]);
  // Read the complete public source tuple to verify epoch advanced, not merely active status.
  const sourceRead=async()=>{const res=await vm.evm.runCall({caller:createAddressFromString("0x"+"fe".repeat(20)),to:createAddressFromString(xp),isStatic:true,gasLimit:2000000n,data:hexToBytes(abi.xp.encodeFunctionData("sources",[rule,sourceB]))});if(res.execResult.exceptionError)throw Error("source read reverted");return abi.xp.decodeFunctionResult("sources",bytesToHex(res.execResult.returnValue));};
  const current=await sourceRead();

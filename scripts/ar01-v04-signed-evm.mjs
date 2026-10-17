@@ -22,7 +22,7 @@ const artifacts={
  factory:JSON.parse(fs.readFileSync(join(root,"proxies/SafeProxyFactory.sol/SafeProxyFactory.json"),"utf8"))
 };
 const files={"XPPolicyV04SourceBound.sol":"XPPolicyV04SourceBound","PIECoreIgnitionV01.sol":"PIECoreIgnitionV01","TrustedXPSourceRegistryV02.sol":"TrustedXPSourceRegistryV02","GFLOIgnitionV01.sol":"GFLOIgnitionV01","GFLOFixedSupplyV01.sol":"GFLOFixedSupplyV01","EffectiveTierGateV01.sol":"EffectiveTierGateV01"};
-const sources=Object.fromEntries(Object.keys(files).map(f=>[f,{content:execFileSync("git",["show","origin/feature/pie-core-v0.2:contracts/"+f],{cwd:repo,encoding:"utf8"})}]));
+const sources=Object.fromEntries(Object.keys(files).filter(f=>f!=="XPPolicyV04SourceBound.sol").map(f=>[f,{content:execFileSync("git",["show","origin/feature/pie-core-v0.2:contracts/"+f],{cwd:repo,encoding:"utf8"})}]));
 sources["XPPolicyV04SourceBound.sol"]={content:fs.readFileSync(join(process.cwd(),"contracts/XPPolicyV04SourceBound.sol"),"utf8")};
 sources["GasFeeLoop.sol"]={content:fs.readFileSync(join(homedir(),"GasFeeLoop-/contracts/GasFeeLoop.sol"),"utf8")};
 const ozRoot=path.dirname(localReq.resolve("@openzeppelin/contracts/package.json"));

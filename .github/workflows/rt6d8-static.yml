@@ -1,0 +1,24 @@
+name: RT6D8 source invariant (not EVM)
+on:
+  pull_request:
+    paths:
+      - 'contracts/XPPolicyV04.sol'
+      - 'contracts/GFLOSourceBoundAttestorV01.sol'
+      - 'scripts/rt6d7-issuer-rotation-evm.mjs'
+      - 'tests/rt6d8-finalize-static.test.mjs'
+      - '.github/workflows/rt6d8-static.yml'
+  push:
+    branches:
+      - 'feature/rt6d8-finalize-revalidation'
+jobs:
+  source-invariant-only:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static RT6D.8 invariant (does not execute EVM)
+        run: node --test tests/rt6d8-finalize-static.test.mjs

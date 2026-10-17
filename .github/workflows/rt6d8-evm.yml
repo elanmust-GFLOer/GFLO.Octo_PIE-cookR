@@ -19,8 +19,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: elanmust-GFLOer/gflo-pie
-          ref: feature/pie-core-v0.2
+          ref: dbd02d3f1ffd31abff3bda9caaa9852ee7cecf5c
           path: gflo-pie
+      - name: Print source provenance
+        run: |
+          echo "cookr commit: $(git -C cookr rev-parse HEAD)"
+          echo "PIE commit: $(git -C gflo-pie rev-parse HEAD)"
       - name: Verify pinned PIE fixture blob SHAs (fail closed on source drift)
         working-directory: gflo-pie
         run: |
@@ -53,4 +57,5 @@ jobs:
           SAFE_ARTIFACTS_ROOT: ${{ github.workspace }}/cookr/node_modules/@safe-global/safe-smart-account/build/artifacts/contracts
         run: |
           node --version
+          npm ls --depth=0
           node scripts/rt6d7-issuer-rotation-evm.mjs

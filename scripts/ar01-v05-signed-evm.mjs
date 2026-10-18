@@ -84,6 +84,8 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
+// Match the contract nullifier namespace; raw event/evidence IDs are not mapping keys.
+const nullifierKey=value=>keccak256(AbiCoder.defaultAbiCoder().encode(["bytes32"],[value]));
 let n=0;const N=25;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V05 MULTI-SOURCE SIGNED EVM REGRESSION ===");
@@ -199,7 +201,7 @@ await check("Single compromised issuer cannot mint XP or reserve quota",async()=
  await send("verifier","xp",xp,"submit",[p,attestor,await proofSignature(p),duplicate],0);
  assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),before);
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),0n);
- assert.equal(await read("xp",xp,"usedEvents",[p[2]]),false);
+ assert.equal(await read("xp",xp,"usedEvents",[nullifierKey(p[2])]),false);
 });
 await check("Different source IDs with identical issuer/control group fail closed",async()=>{
  await admin("xp",xp,"configureSource",[rule,sourceB,issuer,groupA,true]);
@@ -249,11 +251,13 @@ await check("AR01-05C: tampered evidence rejects both signatures without state m
  assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),beforeClaims);
  assert.equal(await read("xp",xp,"dailyXP",[account,day]),beforeDay);
  assert.equal(await read("xp",xp,"weeklyXP",[account,week]),beforeWeek);
- assert.equal(await read("xp",xp,"usedEvents",[original[2]]),false);
- assert.equal(await read("xp",xp,"usedEvidence",[original[3]]),false);
+ assert.equal(await read("xp",xp,"usedEvents",[nullifierKey(original[2])]),false);
+ assert.equal(await read("xp",xp,"usedEvidence",[nullifierKey(original[3])]),false);
  const receipt=await send("verifier","xp",xp,"submit",[original,attestor,await proofSignature(original),signed]);
  assert.ok(await grantFromReceipt(receipt));
  assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),beforeClaims+1n);
+ assert.equal(await read("xp",xp,"usedEvents",[nullifierKey(original[2])]),true);
+ assert.equal(await read("xp",xp,"usedEvidence",[nullifierKey(original[3])]),true);
 });
 await check("AR01-05C: second source signs different evidence and cannot satisfy quorum",async()=>{
  atDay(21);
@@ -266,7 +270,7 @@ await check("AR01-05C: second source signs different evidence and cannot satisfy
  await send("verifier","xp",xp,"submit",[original,attestor,await proofSignature(original),mismatched],0);
  assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),before);
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),1000n);
- assert.equal(await read("xp",xp,"usedEvents",[original[2]]),false);
+ assert.equal(await read("xp",xp,"usedEvents",[nullifierKey(original[2])]),false);
  const correct=[a,await approval(original,sourceB,secondIssuer)].sort((x,y)=>x[0].localeCompare(y[0]));
  const receipt=await send("verifier","xp",xp,"submit",[original,attestor,await proofSignature(original),correct]);
  assert.ok(await grantFromReceipt(receipt));
@@ -285,7 +289,7 @@ await check("AR01-05C: EIP-712 foreign contract domain rejects source approval",
  const before=await read("xp",xp,"claimsPerRule",[account,rule]);
  await send("verifier","xp",xp,"submit",[original,attestor,await proofSignature(original),approvals],0);
  assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),before);
- assert.equal(await read("xp",xp,"usedEvents",[original[2]]),false);
+ assert.equal(await read("xp",xp,"usedEvents",[nullifierKey(original[2])]),false);
  const valid=[sourceA,await approval(original,sourceB,secondIssuer)].sort((x,y)=>x[0].localeCompare(y[0]));
  assert.ok(await grantFromReceipt(await send("verifier","xp",xp,"submit",[original,attestor,await proofSignature(original),valid])));
 });
@@ -308,8 +312,8 @@ await check("AR01-05D: foreign chainId source signature rejected with no quota o
  const before=await read("xp",xp,"claimsPerRule",[account,rule]);
  await send("verifier","xp",xp,"submit",[original,attestor,await proofSignature(original),approvals],0);
  assert.equal(await read("xp",xp,"claimsPerRule",[account,rule]),before);
- assert.equal(await read("xp",xp,"usedEvents",[original[2]]),false);
- assert.equal(await read("xp",xp,"usedEvidence",[original[3]]),false);
+ assert.equal(await read("xp",xp,"usedEvents",[nullifierKey(original[2])]),false);
+ assert.equal(await read("xp",xp,"usedEvidence",[nullifierKey(original[3])]),false);
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),1000n);
 });
 await check("AR01-05D: Safe codehash-pins V05 in Registry and TierGate reads canonical XP",async()=>{
@@ -433,8 +437,8 @@ await check("AR01-05F: failed incident operations preserve quota, nullifiers, XP
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),xpBefore);
  assert.equal(await read("xp",xp,"dailyXP",[account,day]),daily);
  assert.equal(await read("xp",xp,"weeklyXP",[account,week]),weekly);
- assert.equal(await read("xp",xp,"usedEvents",[p4[2]]),false);
- assert.equal(await read("xp",xp,"usedEvidence",[p4[3]]),false);
+ assert.equal(await read("xp",xp,"usedEvents",[nullifierKey(p4[2])]),false);
+ assert.equal(await read("xp",xp,"usedEvidence",[nullifierKey(p4[3])]),false);
  assert.equal(await read("token",token,"totalSupply"),supply);
 });
 await check("AR01-05F: unauthorized source governance and emergency toggles revert",async()=>{

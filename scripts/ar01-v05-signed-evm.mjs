@@ -84,7 +84,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=24;
+let n=0;const N=25;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V05 MULTI-SOURCE SIGNED EVM REGRESSION ===");
 console.log("Solc:",solc.version());
@@ -569,6 +569,61 @@ await check("AR01-05J.2: two recipients and delayed recovery preserve original w
  await send("verifier","xp",xp,"submit",[pa,attestor,await proofSignature(pa),await signApprovals(pa)],0);
  console.log("AR01-05J.2 recipient/window isolation: two identities, two weeks, delayed recovery");
 });
+await check("AR01-05J.3: seeded lifecycle model preserves quota, replay and XP",async()=>{
+ const seed=0x05f00d43;let rng=seed>>>0;
+ const next=()=>{rng^=rng<<13;rng^=rng>>>17;rng^=rng<<5;return rng>>>0;};
+ const modelRule=id("J3_LIFECYCLE_RULE");
+ await admin("xp",xp,"registerRule",[modelRule,100,8]);
+ await admin("xp",xp,"setAttestor",[modelRule,attestor,true]);
+ await admin("xp",xp,"configureSource",[modelRule,sourceId,issuer,groupA,true]);
+ await admin("xp",xp,"configureSource",[modelRule,sourceB,secondIssuer.address,groupB,true]);
+ atDay(91);
+ const startDay=activeTimestamp/86400n,startWeek=activeTimestamp/(7n*86400n);
+ const baseXP=await read("xp",xp,"validEarnedXP",[account]);
+ const baseSupply=await read("token",token,"totalSupply");
+ const items=Array.from({length:4},(_,i)=>({p:[account,modelRule,id("J3_EVENT_"+i),id("J3_EVIDENCE_"+i),BigInt(9900+i),BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n],phase:0,claim:null}));
+ let expectedClaims=0n,expectedReserved=0n;
+ const approvalsFor=async p=>[await approval(p,sourceId,issuerWallet),await approval(p,sourceB,secondIssuer)].sort((a,b)=>a[0].localeCompare(b[0]));
+ const verify=async(label)=>{
+  assert.equal(await read("xp",xp,"claimsPerRule",[account,modelRule]),expectedClaims,label+" claims");
+  assert.equal(await read("xp",xp,"dailyXP",[account,startDay]),expectedReserved,label+" daily");
+  assert.equal(await read("xp",xp,"weeklyXP",[account,startWeek]),expectedReserved,label+" weekly");
+  assert.equal(await read("xp",xp,"validEarnedXP",[account]),baseXP,label+" XP");
+  assert.equal(await read("token",token,"totalSupply"),baseSupply,label+" supply");
+ };
+ for(let step=0;step<32;step++){
+  const item=items[next()%items.length];
+  const op=next()%5;
+  if(op===0 && item.phase===0){
+   item.claim=await grantFromReceipt(await send("verifier","xp",xp,"submit",[item.p,attestor,await proofSignature(item.p),await approvalsFor(item.p)]));
+   item.phase=1;expectedClaims++;expectedReserved+=100n;
+  }else if(op===1 && item.phase===1){
+   await admin("xp",xp,"revoke",[item.claim,id("J3_REVOKE_"+step)]);item.phase=2;
+  }else if(op===2 && item.phase===2){
+   await admin("xp",xp,"releaseRevokedPendingQuota",[item.claim]);item.phase=3;
+   expectedClaims--;expectedReserved-=100n;
+  }else if(op===3 && item.phase!==0){
+   await send("verifier","xp",xp,"submit",[item.p,attestor,await proofSignature(item.p),await approvalsFor(item.p)],0);
+  }else if(op===4 && item.phase===3){
+   await send("outsider","xp",xp,"releaseRevokedPendingQuota",[item.claim],0);
+  }else{
+   await send("outsider","xp",xp,"releaseRevokedPendingQuota",[id("J3_UNKNOWN_"+step)],0);
+  }
+  await verify("seed="+seed+" step="+step+" op="+op);
+ }
+ for(const item of items){
+  if(item.phase===0){
+   item.claim=await grantFromReceipt(await send("verifier","xp",xp,"submit",[item.p,attestor,await proofSignature(item.p),await approvalsFor(item.p)]));
+   expectedClaims++;expectedReserved+=100n;item.phase=1;
+  }
+  if(item.phase===1){await admin("xp",xp,"revoke",[item.claim,id("J3_FINAL_REVOKE")]);item.phase=2;}
+  if(item.phase===2){await admin("xp",xp,"releaseRevokedPendingQuota",[item.claim]);expectedClaims--;expectedReserved-=100n;item.phase=3;}
+  await verify("finalize model item");
+  await send("verifier","xp",xp,"submit",[item.p,attestor,await proofSignature(item.p),await approvalsFor(item.p)],0);
+ }
+ assert.equal(expectedClaims,0n);assert.equal(expectedReserved,0n);
+ console.log("AR01-05J.3 seed:",seed,"randomized steps: 32; lifecycle claims: 4");
+});
 assert.equal(n,N);
-console.log("24/24 V05 SIGNED EVM RED TEAM EXECUTED");
+console.log("25/25 V05 SIGNED EVM RED TEAM EXECUTED");
 console.log("Scope: signer independence only; real-world evidence truth and collusion remain out of scope.");

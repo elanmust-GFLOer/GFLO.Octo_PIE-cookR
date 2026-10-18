@@ -1,0 +1,46 @@
+name: AR01 J4 Promote Verified Dependency Lock
+on:
+  push:
+    branches:
+      - audit/ar01-contract-inventory-20261017
+    paths:
+      - '.github/workflows/ar01-j4-promote-lock.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  promote-reviewed-lock:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: true
+      - name: Download original successful bootstrap artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/12119577088/zip" \
+            --output /tmp/ar01-j4-evidence.zip
+          unzip -p /tmp/ar01-j4-evidence.zip package-lock.json > /tmp/ar01-j4-package-lock.json
+          echo '632e1573d46ecf3aa89636d561491b18247fcd48736e4df6c7788a3a1745277a  /tmp/ar01-j4-package-lock.json' | sha256sum --check
+          node -e 'const fs=require("fs");const a=JSON.parse(fs.readFileSync("_evm_deps/package.json"));const b=JSON.parse(fs.readFileSync("/tmp/ar01-j4-package-lock.json"));if(JSON.stringify(a.dependencies)!==JSON.stringify(b.packages[""].dependencies))throw Error("manifest/lock dependency mismatch");if(b.lockfileVersion!==3)throw Error("unexpected lock version");'
+      - name: Commit exact verified lockfile
+        run: |
+          set -euo pipefail
+          if test -e _evm_deps/package-lock.json; then
+            cmp _evm_deps/package-lock.json /tmp/ar01-j4-package-lock.json
+            echo 'Already committed, content matches.'
+            exit 0
+          fi
+          cp /tmp/ar01-j4-package-lock.json _evm_deps/package-lock.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add _evm_deps/package-lock.json
+          git commit -m 'build(ar01-05j4): commit verified CI dependency lockfile'
+          git push origin HEAD:audit/ar01-contract-inventory-20261017

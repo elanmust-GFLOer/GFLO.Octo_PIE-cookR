@@ -84,7 +84,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=23;
+let n=0;const N=24;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO AR01-03 — V05 MULTI-SOURCE SIGNED EVM REGRESSION ===");
 console.log("Solc:",solc.version());
@@ -530,6 +530,45 @@ await check("AR01-05I: seeded 32-case recovery/replay property sequence preserve
  }
  console.log("AR01-05I deterministic property seed:",seed,"attempts: 32");
 });
+await check("AR01-05J.2: two recipients and delayed recovery preserve original week buckets",async()=>{
+ const other=senders.outsider.address.toString();
+ const isolationRule=id("AR01_05J_RECIPIENT_ISOLATION");
+ await send("outsider","core",core,"createIdentity",[3]);
+ await admin("xp",xp,"registerRule",[isolationRule,100,4]);
+ await admin("xp",xp,"setAttestor",[isolationRule,attestor,true]);
+ await admin("xp",xp,"configureSource",[isolationRule,sourceId,issuer,groupA,true]);
+ await admin("xp",xp,"configureSource",[isolationRule,sourceB,secondIssuer.address,groupB,true]);
+ atDay(70);
+ const day=activeTimestamp/86400n,week=activeTimestamp/(7n*86400n);
+ const makeProof=(recipient,label,nonce)=>[recipient,isolationRule,id("J2_EVENT_"+label),id("J2_EVIDENCE_"+label),nonce,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const pa=makeProof(account,"A",9001n),pb=makeProof(other,"B",9002n);
+ const signApprovals=async p=>[await approval(p,sourceId,issuerWallet),await approval(p,sourceB,secondIssuer)].sort((x,y)=>x[0].localeCompare(y[0]));
+ const a=await grantFromReceipt(await send("verifier","xp",xp,"submit",[pa,attestor,await proofSignature(pa),await signApprovals(pa)]));
+ const b=await grantFromReceipt(await send("verifier","xp",xp,"submit",[pb,attestor,await proofSignature(pb),await signApprovals(pb)]));
+ assert.equal(await read("xp",xp,"dailyXP",[account,day]),100n);
+ assert.equal(await read("xp",xp,"weeklyXP",[other,week]),100n);
+ await admin("xp",xp,"revoke",[a,id("J2_PENDING_REVOCATION")]);
+ atDay(78);
+ const currentDay=activeTimestamp/86400n,currentWeek=activeTimestamp/(7n*86400n);
+ const newDayBefore=await read("xp",xp,"dailyXP",[account,currentDay]);
+ const newWeekBefore=await read("xp",xp,"weeklyXP",[account,currentWeek]);
+ const supply=await read("token",token,"totalSupply");
+ const xpBefore=await read("registry",registry,"totalXP",[account]);
+ await admin("xp",xp,"releaseRevokedPendingQuota",[a]);
+ assert.equal(await read("xp",xp,"claimsPerRule",[account,isolationRule]),0n);
+ assert.equal(await read("xp",xp,"dailyXP",[account,day]),0n);
+ assert.equal(await read("xp",xp,"weeklyXP",[account,week]),0n);
+ assert.equal(await read("xp",xp,"dailyXP",[account,currentDay]),newDayBefore);
+ assert.equal(await read("xp",xp,"weeklyXP",[account,currentWeek]),newWeekBefore);
+ assert.equal(await read("xp",xp,"claimsPerRule",[other,isolationRule]),1n);
+ assert.equal(await read("xp",xp,"dailyXP",[other,day]),100n);
+ assert.equal(await read("xp",xp,"weeklyXP",[other,week]),100n);
+ assert.equal(await read("xp",xp,"grantStatus",[b]),1n);
+ assert.equal(await read("registry",registry,"totalXP",[account]),xpBefore);
+ assert.equal(await read("token",token,"totalSupply"),supply);
+ await send("verifier","xp",xp,"submit",[pa,attestor,await proofSignature(pa),await signApprovals(pa)],0);
+ console.log("AR01-05J.2 recipient/window isolation: two identities, two weeks, delayed recovery");
+});
 assert.equal(n,N);
-console.log("23/23 V05 SIGNED EVM RED TEAM EXECUTED");
+console.log("24/24 V05 SIGNED EVM RED TEAM EXECUTED");
 console.log("Scope: signer independence only; real-world evidence truth and collusion remain out of scope.");

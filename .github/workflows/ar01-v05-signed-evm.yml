@@ -20,13 +20,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: elanmust-GFLOer/gflo-pie
-          ref: feature/pie-core-v0.2
+          ref: dbd02d3f1ffd31abff3bda9caaa9852ee7cecf5c
           path: _pie
           persist-credentials: false
       - name: Checkout legacy GasFeeLoop
         uses: actions/checkout@v4
         with:
           repository: elanmust-GFLOer/GasFeeLoop-
+          ref: 16f5e5aaa52d8022d33cee46cdcbba4e5e49fa7c
           path: _gas
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -38,6 +39,10 @@ jobs:
           git -C _pie rev-parse HEAD
           git -C _gas rev-parse HEAD
           node --version
+      - name: Assert pinned upstream revisions
+        run: |
+          test "$(git -C _pie rev-parse HEAD)" = "dbd02d3f1ffd31abff3bda9caaa9852ee7cecf5c"
+          test "$(git -C _gas rev-parse HEAD)" = "16f5e5aaa52d8022d33cee46cdcbba4e5e49fa7c"
       - name: Install isolated EVM fixture dependencies
         run: |
           mkdir -p _evm_deps
@@ -53,7 +58,32 @@ jobs:
           ln -s "$GITHUB_WORKSPACE/_gas/contracts" "$HOME/GasFeeLoop-/contracts"
           git -C "$HOME/gflo-pie" init
           git -C "$HOME/gflo-pie" remote add origin "https://github.com/elanmust-GFLOer/gflo-pie.git"
-          git -C "$HOME/gflo-pie" fetch --depth=1 origin feature/pie-core-v0.2
+          git -C "$HOME/gflo-pie" fetch --depth=1 origin dbd02d3f1ffd31abff3bda9caaa9852ee7cecf5c
           ln -s "$GITHUB_WORKSPACE/_evm_deps/node_modules" node_modules
       - name: Execute signed local EVM red team
-        run: node scripts/ar01-v05-signed-evm.mjs
+        run: |
+          mkdir -p evidence
+          set -o pipefail
+          node scripts/ar01-v05-signed-evm.mjs | tee evidence/v05-signed-evm.log
+      - name: Capture evidence manifest
+        if: always()
+        run: |
+          mkdir -p evidence
+          {
+            echo "integration_sha=$(git rev-parse HEAD)"
+            echo "pie_sha=$(git -C _pie rev-parse HEAD)"
+            echo "gas_sha=$(git -C _gas rev-parse HEAD)"
+            echo "node_version=$(node --version)"
+            echo "run_id=$GITHUB_RUN_ID"
+            echo "run_attempt=$GITHUB_RUN_ATTEMPT"
+            echo "job_status=$GITHUB_JOB"
+          } > evidence/manifest.txt
+          if test -f evidence/v05-signed-evm.log; then sha256sum evidence/v05-signed-evm.log >> evidence/manifest.txt; fi
+          sha256sum .github/workflows/ar01-v05-signed-evm.yml scripts/ar01-v05-signed-evm.mjs contracts/XPPolicyV05MultiSource.sol >> evidence/manifest.txt
+      - name: Upload CI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ar01-v05-signed-evm-evidence
+          path: evidence/
+          retention-days: 90

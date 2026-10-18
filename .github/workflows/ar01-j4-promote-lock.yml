@@ -29,7 +29,7 @@ jobs:
             --output /tmp/ar01-j4-evidence.zip
           unzip -p /tmp/ar01-j4-evidence.zip package-lock.json > /tmp/ar01-j4-package-lock.json
           echo '632e1573d46ecf3aa89636d561491b18247fcd48736e4df6c7788a3a1745277a  /tmp/ar01-j4-package-lock.json' | sha256sum --check
-          node -e 'const fs=require("fs");const a=JSON.parse(fs.readFileSync("_evm_deps/package.json"));const b=JSON.parse(fs.readFileSync("/tmp/ar01-j4-package-lock.json"));if(JSON.stringify(a.dependencies)!==JSON.stringify(b.packages[""].dependencies))throw Error("manifest/lock dependency mismatch");if(b.lockfileVersion!==3)throw Error("unexpected lock version");'
+          node -e 'const fs=require("fs");const a=JSON.parse(fs.readFileSync("_evm_deps/package.json"));const b=JSON.parse(fs.readFileSync("/tmp/ar01-j4-package-lock.json"));const expected=a.dependencies,actual=b.packages[""].dependencies;const keys=Object.keys(expected).sort(),other=Object.keys(actual).sort();if(JSON.stringify(keys)!==JSON.stringify(other)||keys.some(k=>expected[k]!==actual[k])){console.error("Manifest:",expected,"Lock:",actual);throw Error("manifest/lock dependency mismatch");}if(b.lockfileVersion!==3)throw Error("unexpected lock version");'
       - name: Commit exact verified lockfile
         run: |
           set -euo pipefail

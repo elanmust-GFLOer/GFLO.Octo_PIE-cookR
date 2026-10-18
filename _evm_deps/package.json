@@ -1,0 +1,17 @@
+{
+  "name": "gflo-ar01-v05-signed-evm-fixture",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Isolated signed EVM CI fixture; commit the generated lockfile before treating CI as reproducible.",
+  "dependencies": {
+    "@ethereumjs/vm": "^10.0.0",
+    "@ethereumjs/tx": "^10.0.0",
+    "@ethereumjs/block": "^10.0.0",
+    "@ethereumjs/common": "^10.0.0",
+    "@ethereumjs/util": "^10.0.0",
+    "@openzeppelin/contracts": "^5.0.0",
+    "@safe-global/safe-smart-account": "^1.5.0",
+    "ethers": "^6.0.0",
+    "solc": "0.8.34"
+  }
+}

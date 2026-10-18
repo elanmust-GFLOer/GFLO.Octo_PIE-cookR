@@ -7,6 +7,8 @@ on:
       - '.github/workflows/ar01-v05-signed-evm.yml'
       - 'scripts/ar01-v05-signed-evm.mjs'
       - 'contracts/XPPolicyV05MultiSource.sol'
+      - '_evm_deps/package.json'
+      - '_evm_deps/package-lock.json'
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,22 +17,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Checkout PIE
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: elanmust-GFLOer/gflo-pie
           ref: dbd02d3f1ffd31abff3bda9caaa9852ee7cecf5c
           path: _pie
           persist-credentials: false
       - name: Checkout legacy GasFeeLoop
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: elanmust-GFLOer/GasFeeLoop-
           ref: 16f5e5aaa52d8022d33cee46cdcbba4e5e49fa7c
           path: _gas
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
       - name: Record exact sources
@@ -45,10 +47,16 @@ jobs:
           test "$(git -C _gas rev-parse HEAD)" = "16f5e5aaa52d8022d33cee46cdcbba4e5e49fa7c"
       - name: Install isolated EVM fixture dependencies
         run: |
-          mkdir -p _evm_deps
+          mkdir -p evidence
           cd _evm_deps
-          npm init -y
-          npm install --no-save --no-package-lock --ignore-scripts @ethereumjs/vm@10 @ethereumjs/tx@10 @ethereumjs/block@10 @ethereumjs/common@10 @ethereumjs/util@10 @openzeppelin/contracts@5 @safe-global/safe-smart-account@1.5 ethers@6 solc@0.8.34
+          if test -f package-lock.json; then
+            npm ci --ignore-scripts --no-audit --no-fund
+            echo "dependency_mode=LOCKED_NPM_CI" >> "$GITHUB_ENV"
+          else
+            npm install --ignore-scripts --no-audit --no-fund --package-lock=true
+            echo "dependency_mode=BOOTSTRAP_LOCK_PENDING_REVIEW" >> "$GITHUB_ENV"
+          fi
+          npm ls --depth=0 > "$GITHUB_WORKSPACE/evidence/npm-top-level.txt"
       - name: Prepare isolated fixture paths
         run: |
           mkdir -p "$HOME/gflo-pie" "$HOME/GasFeeLoop-"
@@ -74,15 +82,18 @@ jobs:
             echo "pie_sha=$(git -C _pie rev-parse HEAD)"
             echo "gas_sha=$(git -C _gas rev-parse HEAD)"
             echo "node_version=$(node --version)"
+            echo "dependency_mode=${dependency_mode:-UNKNOWN}"
+            echo "npm_version=$(npm --version)"
             echo "run_id=$GITHUB_RUN_ID"
             echo "run_attempt=$GITHUB_RUN_ATTEMPT"
             echo "job_status=$GITHUB_JOB"
           } > evidence/manifest.txt
           if test -f evidence/v05-signed-evm.log; then sha256sum evidence/v05-signed-evm.log >> evidence/manifest.txt; fi
+          if test -f _evm_deps/package-lock.json; then cp _evm_deps/package-lock.json evidence/package-lock.json; sha256sum _evm_deps/package-lock.json >> evidence/manifest.txt; fi
           sha256sum .github/workflows/ar01-v05-signed-evm.yml scripts/ar01-v05-signed-evm.mjs contracts/XPPolicyV05MultiSource.sol >> evidence/manifest.txt
       - name: Upload CI evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ar01-v05-signed-evm-evidence
           path: evidence/

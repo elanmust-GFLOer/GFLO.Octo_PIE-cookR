@@ -14,7 +14,7 @@ permissions:
   contents: read
 jobs:
   signed-evm-v05:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -34,7 +34,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: '22'
+          node-version: '22.23.3'
       - name: Record exact sources
         run: |
           git rev-parse HEAD
@@ -49,13 +49,10 @@ jobs:
         run: |
           mkdir -p evidence
           cd _evm_deps
-          if test -f package-lock.json; then
-            npm ci --ignore-scripts --no-audit --no-fund
-            echo "dependency_mode=LOCKED_NPM_CI" >> "$GITHUB_ENV"
-          else
-            npm install --ignore-scripts --no-audit --no-fund --package-lock=true
-            echo "dependency_mode=BOOTSTRAP_LOCK_PENDING_REVIEW" >> "$GITHUB_ENV"
-          fi
+          test -f package-lock.json
+          npm ci --ignore-scripts --no-audit --no-fund
+          git diff --exit-code -- package.json package-lock.json
+          echo "dependency_mode=LOCKED_NPM_CI" >> "$GITHUB_ENV"
           npm ls --depth=0 > "$GITHUB_WORKSPACE/evidence/npm-top-level.txt"
       - name: Prepare isolated fixture paths
         run: |

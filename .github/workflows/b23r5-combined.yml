@@ -1,0 +1,44 @@
+name: B2.3-R5 Combined Security Evidence
+on:
+  pull_request:
+    paths: ['b22/**','b23/**','b23r1/**','b23r2/**','b23r3/**','b23r4/**','b23r5/**','.github/workflows/b23r5-combined.yml']
+  push:
+    branches: ['feature/b23r5-operational-quarantine-gate']
+permissions:
+  contents: read
+jobs:
+  combined:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: postgres}
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      B22_DISPOSABLE_ACK: 'YES'
+      B23_DISPOSABLE_ACK: 'YES'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run provenance
+        run: |
+          git rev-parse HEAD
+          git rev-parse HEAD^{tree}
+          psql --version
+          python3 --version
+      - run: python3 -m pip install 'psycopg[binary]>=3.2,<4'
+      - name: Create disposable databases
+        run: |
+          psql -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE b2test_r4_baseline;'
+          psql -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE b2test_r4_transition;'
+      - name: Execute R5 combined invariant and race suites
+        run: bash b23r5/tests/run_combined_verified.sh

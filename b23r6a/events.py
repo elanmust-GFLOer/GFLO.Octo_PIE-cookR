@@ -30,14 +30,32 @@ class EventStore:
                 "session_pseudonym": self._pseudo(identity.session_id) if identity else None}
 
     def commit(self, event):
-        with self._lock:
-            self._events.append(dict(event))
+        # Best-effort terminal/public observations never wait behind protected work.
+        if not self._lock.acquire(blocking=False):
+            from .contracts import Unavailable
+            raise Unavailable()
+        try:self._events.append(dict(event))
+        finally:self._lock.release()
+
+    def commit_before_deadline(self,event,budget):
+        prepared=dict(event)
+        with budget.hold(self._lock):
+            budget.check()
+            self._events.append(prepared)
+            budget.check()
 
     def summary(self):
         with self._lock:
             counts = {k: sum(e["decision"] == k for e in self._events)
                       for k in ("ALLOW", "DENY", "QUARANTINE")}
             return {"environment": "R6A-OFFLINE", "events": len(self._events), "counts": counts}
+
+    def summary_before_deadline(self,budget):
+        with budget.hold(self._lock):
+            counts={k:sum(e["decision"]==k for e in self._events) for k in ("ALLOW","DENY","QUARANTINE")}
+            value={"environment":"R6A-OFFLINE","events":len(self._events),"counts":counts}
+            budget.check()
+            return value
 
     def snapshot_for_test(self):
         with self._lock:

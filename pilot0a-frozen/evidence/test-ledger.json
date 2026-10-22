@@ -1,0 +1,316 @@
+{
+  "status": "PASS",
+  "executed": 59,
+  "expected": 59,
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "PyJWT": "2.13.0",
+  "tests": [
+    {
+      "name": "test_pilot.IdentitySecurity.test_all_protocol_write_operations_are_absent",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_audit_is_bounded_and_pseudonymized",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_audit_outage_blocks_delivery_and_ticket_consumption",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_authority_timeout_then_fresh_retry",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_caller_asserted_auth_context_is_rejected",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_concurrent_same_consent_is_single_use",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_consent_field_tampering_is_rejected",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_consent_revocation_is_rejected",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_delivery_holds_fence_until_read_is_released",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_each_allowed_read_has_source_and_trace",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_each_missing_authority_dependency_fails_closed",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_expiration_boundary_is_exclusive",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_final_policy_revoked_during_audit_is_rejected",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_final_session_revoked_during_audit_is_rejected",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_final_session_unknown_during_audit_is_quarantined",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_foreign_consent_is_rejected",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_future_consent_is_rejected",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_invalid_address_is_rejected",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_legacy_cannot_be_relabelled_demo",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_local_suspension_blocks_read",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_malformed_consent_clock_fails_closed",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_missing_consent",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_missing_delivery_does_not_create_allow_capability",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_own_binding_request_is_still_quarantined",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_own_demo_read_has_no_canonical_authority",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_own_legacy_read_never_promotes_arbitrary_xp",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_record_tampering_is_rejected",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_replayed_consent_with_new_request_id_is_rejected",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_reviewed_protocol_label_requires_missing_review_gate",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_revocation_committed_before_fence_blocks_delivery",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_revoked_session_blocks_read",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_same_request_id_with_changed_valid_ticket_conflicts",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_stale_auth_generation_is_rejected",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_stale_epoch_invalidates_old_consent",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_stale_revocation_generation_invalidates_old_consent",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_synthetic_record_cannot_claim_live_chain_provenance",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_transport_failure_is_not_retried",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_unauthorized_scope_with_valid_mock_mac_is_rejected",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_unknown_session_quarantines_read",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_user_a_cannot_bind_user_b",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_user_a_cannot_read_user_b",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_verified_wallet_label_requires_real_proof",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_wrong_chain_isolated",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_wrong_contract_isolated",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_wrong_protocol_isolated",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_wrong_wallet_isolated",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.IdentitySecurity.test_xp_tier_and_token_state_are_unchanged",
+      "status": "PASS",
+      "kind": "SYNTHETIC_BEHAVIOR"
+    },
+    {
+      "name": "test_pilot.SourceCompatibility.test_baseline_test_explicitly_demonstrates_vulnerability",
+      "status": "PASS",
+      "kind": "SOURCE_ORACLE"
+    },
+    {
+      "name": "test_pilot.SourceCompatibility.test_deployment_script_points_at_a_different_abi",
+      "status": "PASS",
+      "kind": "SOURCE_ORACLE"
+    },
+    {
+      "name": "test_pilot.SourceCompatibility.test_harness_has_no_http_rpc_database_or_transaction_client",
+      "status": "PASS",
+      "kind": "SOURCE_ORACLE"
+    },
+    {
+      "name": "test_pilot.SourceCompatibility.test_legacy_gainxp_is_permissionless_source_oracle",
+      "status": "PASS",
+      "kind": "SOURCE_ORACLE"
+    },
+    {
+      "name": "test_pilot.SourceCompatibility.test_octogflo_adapters_are_types_only",
+      "status": "PASS",
+      "kind": "SOURCE_ORACLE"
+    },
+    {
+      "name": "test_pilot.SourceCompatibility.test_pinned_v02_is_candidate_not_legacy_or_release_approval",
+      "status": "PASS",
+      "kind": "SOURCE_ORACLE"
+    },
+    {
+      "name": "test_pilot.SourceCompatibility.test_r6a_accepts_read_beyond_original_one_second_budget",
+      "status": "PASS",
+      "kind": "SOURCE_ORACLE"
+    },
+    {
+      "name": "test_pilot.SourceCompatibility.test_r6a_anchor_permissions_and_86_manifest_unchanged",
+      "status": "PASS",
+      "kind": "SOURCE_ORACLE"
+    },
+    {
+      "name": "test_pilot.SourceCompatibility.test_r6a_deadline_drift_is_reported_not_closed",
+      "status": "PASS",
+      "kind": "SOURCE_ORACLE"
+    },
+    {
+      "name": "test_pilot.SourceCompatibility.test_root_copy_is_not_deployed_implementation",
+      "status": "PASS",
+      "kind": "SOURCE_ORACLE"
+    },
+    {
+      "name": "test_pilot.SourceCompatibility.test_verified_abi_exactly_matches_compiled_artifact",
+      "status": "PASS",
+      "kind": "SOURCE_ORACLE"
+    },
+    {
+      "name": "test_pilot.SourceCompatibility.test_verified_source_exactly_matches_contracts_copy",
+      "status": "PASS",
+      "kind": "SOURCE_ORACLE"
+    }
+  ],
+  "limits": [
+    "NO EVM test execution",
+    "NO live Auth/wallet verification",
+    "R6A original 1-second requirement OPEN",
+    "source/runtime tests are different evidence classes"
+  ],
+  "known_finding_tests": [
+    "test_pilot.SourceCompatibility.test_legacy_gainxp_is_permissionless_source_oracle",
+    "test_pilot.SourceCompatibility.test_r6a_accepts_read_beyond_original_one_second_budget",
+    "test_pilot.SourceCompatibility.test_deployment_script_points_at_a_different_abi"
+  ]
+}

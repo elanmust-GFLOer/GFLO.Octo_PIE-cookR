@@ -1,0 +1,16 @@
+{
+  "ContractName": "PIECore",
+  "CompilerVersion": "v0.8.34+commit.80d5c536",
+  "CompilerType": "solc-j",
+  "OptimizationUsed": "0",
+  "Runs": "200",
+  "ConstructorArguments": "000000000000000000000000563b2e3b499818a2f84c472efb3169a2667807fe",
+  "EVMVersion": "Default",
+  "Library": "",
+  "ContractFileName": "contracts/PIECore.sol",
+  "LicenseType": "MIT",
+  "SwarmSource": "ipfs://b58e4688e459da6291f619850008f45363b576b0681fad2e66e8413a14b2c3de",
+  "SimilarMatch": "",
+  "Proxy": "0",
+  "Implementation": ""
+}

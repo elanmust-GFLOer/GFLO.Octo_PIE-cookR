@@ -26,7 +26,10 @@ session liveness. Reads require all proofs, explicit observer policy and an
 available audit sink. Unknown/malformed local states also fail closed.
 
 Adapters execute in spawned, killable processes, with 400 ms stage limits and a
-2-second operation deadline, followed by at most 200 ms termination/reaping grace.
+**at most 1-second authorization budget** (R6A.1), including process startup,
+result decoding and cleanup. Each stage gets at most the remaining budget.
+Termination/reaping can add at most 200 ms of attempted cleanup; it never
+permits a late result or protected release. See [DEADLINE-CONTRACT.md](DEADLINE-CONTRACT.md).
 The response frame is bounded and atomic within PIPE_BUF; poll cannot accept a
 partially written, indefinitely stalled frame. Every worker is terminated/reaped
 before reuse, including successful workers. An unreapable worker seals the
@@ -68,7 +71,10 @@ belongs to future audited PostgreSQL functions. No domain writes exist here.
 ## Verification and evidence
 
 test-manifest.json pins every class/method identity: B22 6, R2 7, R3 6, R4 3,
-R5 6, gateway 42, HTTP 13, manifest 3 = **86 Python tests**, plus SQL gates.
+R5 6, gateway 42, HTTP 13, manifest 3 = **86 preserved Python tests**, plus SQL gates. R6A.1 adds 25 deadline and
+37 offline source-manifest tests (148), plus an exact historical rerun of the
+59 Pilot 0A tests (207 total). A passing historical diagnostic demonstrates the
+old vulnerability, not a new authorization guarantee.
 No skips or expected failures are accepted. The old 28 tests run unchanged
 before the R5 overlay; exact A/B fixture and ACL denial checks then run after it.
 The unsafe laboratory positive tests prove only their explicitly limited scope.

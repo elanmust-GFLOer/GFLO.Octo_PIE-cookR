@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 ROOT=Path(__file__).resolve().parents[1]
-BASE="2362ce622daf896248265a03efca00d6ef72a9a7"
+BASE="12e2df4c32ef51d08c799ec63a565c90221e8bcd"
 def git(*args):
     return subprocess.check_output(["git",*args],cwd=ROOT,text=True).strip()
 def main():
@@ -18,27 +18,32 @@ def main():
     tree=git("rev-parse","HEAD^{tree}")
     if os.environ["GITHUB_EVENT_NAME"]=="pull_request":
         pr=event["pull_request"]
-        assert pr["base"]["sha"]==BASE, "R5 base changed"
+        assert pr["base"]["sha"]==BASE, "R6A base changed"
         head=pr["head"]["sha"]
         assert git("show","-s","--format=%P",checkout).split()==[BASE,head], "unexpected merge parents"
-        assert tree==git("rev-parse",head+"^{tree}"), "merge tree differs from R6A head"
+        assert tree==git("rev-parse",head+"^{tree}"), "merge tree differs from closure head"
     else:
         head=os.environ["GITHUB_SHA"]
         assert checkout==head
     subprocess.run(["git","merge-base","--is-ancestor",BASE,head],cwd=ROOT,check=True)
     manifest=json.loads((ROOT/"b23r6a/test-manifest.json").read_text())
+    original_manifest=json.loads(git("show",BASE+":b23r6a/test-manifest.json"))
+    assert sum(map(len,original_manifest.values()))==86
+    assert all(manifest.get(p)==names for p,names in original_manifest.items()), "original 86 identities changed"
     for path,expected in manifest.items():
         source=ast.parse((ROOT/path).read_text())
         actual=sorted(c.name+"."+m.name for c in source.body if isinstance(c,ast.ClassDef)
                       for m in c.body if isinstance(m,ast.FunctionDef) and m.name.startswith("test_"))
-        assert actual==sorted(expected), "manifest substitution: "+path
-        if not path.startswith("b23r6a/"):
-            original=ast.parse(git("show",BASE+":"+path))
-            pinned=sorted(c.name+"."+m.name for c in original.body if isinstance(c,ast.ClassDef)
-                          for m in c.body if isinstance(m,ast.FunctionDef) and m.name.startswith("test_"))
-            assert pinned==sorted(expected), "R5 baseline test identities changed"
-    # R5 quarantine definitions are byte-for-byte unchanged.
-    assert git("rev-parse",BASE+":b23r5/sql/005_operational_quarantine.sql")==git("hash-object","b23r5/sql/005_operational_quarantine.sql")
+        assert actual==sorted(expected) and len(actual)==len(set(actual)), "manifest substitution: "+path
+    # Original tests, all SQL gates, lifecycle implementations and lockfiles:
+    # no new grants, RPC reachability, or rewritten regression oracles.
+    baseline_paths=git("ls-tree","-r","--name-only",BASE).splitlines()
+    protected=[p for p in baseline_paths if p.startswith(("b22/","b23/","b23r1/","b23r2/","b23r3/","b23r4/","b23r5/"))]
+    protected+=list(original_manifest)+["b23r6a/requirements.lock"]
+    for path in set(protected):
+        assert git("rev-parse",BASE+":"+path)==git("hash-object",path), "baseline blob changed: "+path
+    from frozen_pilot import verify_snapshot
+    verify_snapshot()
     for workflow in (ROOT/".github/workflows").glob("*.yml"):
         text=workflow.read_text()
         assert all(re.fullmatch(r"[0-9a-f]{40}",ref) for ref in re.findall(r"uses: [^@\s]+@([^\s]+)",text)), "mutable Action reference"

@@ -1,0 +1,129 @@
+{
+  "r6a": {
+    "head": "12e2df4c32ef51d08c799ec63a565c90221e8bcd",
+    "tree": "c2ef9cf327b3b4cd1fb489347758cb79d6f995aa",
+    "draft": true,
+    "merged": false,
+    "ci_run": 39835995049,
+    "ci_job": 120024362835,
+    "ci_status": "SUCCESS",
+    "python_count": 86
+  },
+  "pie": {
+    "main": {
+      "head": "a29ef20f938940aa89c66cbf6f685b48fa667d4c",
+      "tree": "83e46aa4fd83513c7a2de8f032d7ffa4679156ef"
+    },
+    "candidate": {
+      "head": "a4e11cb467c2eae6f6baf2419aaa38aa653fdf16",
+      "tree": "12c65220eb4abab2bf6b4c4e1fe9c72971c7fd4f"
+    },
+    "canonical_integration": "BLOCKED",
+    "source_files": {
+      "mainRoot": {
+        "git_blob": "ab4abc60412d1339e765012e80e05a8bed9fb396",
+        "url": "https://github.com/elanmust-GFLOer/gflo-pie/blob/a29ef20f938940aa89c66cbf6f685b48fa667d4c/PIECore.sol",
+        "sha256": "30d1f0481b1fd1fae7296efcb950d0ea93cdae16d5e9d651ec74c8034cd1d083"
+      },
+      "mainContracts": {
+        "git_blob": "5e65caa9f633fab251dbb16c3dda3dc864d03e24",
+        "url": "https://github.com/elanmust-GFLOer/gflo-pie/blob/a29ef20f938940aa89c66cbf6f685b48fa667d4c/contracts/PIECore.sol",
+        "sha256": "25f4cf601f8ea6a7066d2fb7dacf0f08c6307f0579d9421072461a4dbafe2ea4"
+      },
+      "reviewedContracts": {
+        "git_blob": "5e65caa9f633fab251dbb16c3dda3dc864d03e24",
+        "url": "https://github.com/elanmust-GFLOer/gflo-pie/blob/a4e11cb467c2eae6f6baf2419aaa38aa653fdf16/contracts/PIECore.sol",
+        "sha256": "25f4cf601f8ea6a7066d2fb7dacf0f08c6307f0579d9421072461a4dbafe2ea4"
+      },
+      "baseline": {
+        "git_blob": "a7acd524ae3921f499e4e30f01ed1437ff3256e3",
+        "url": "https://github.com/elanmust-GFLOer/gflo-pie/blob/a29ef20f938940aa89c66cbf6f685b48fa667d4c/test/PIECore-baseline.test.js",
+        "sha256": "662a8c4404896a208168e354654120a04132b1313d26ff904bdc285eb6bf7d97"
+      },
+      "v02": {
+        "git_blob": "c4cb8a740ec3eb9971e08c50d1a39ca3d3dff7e5",
+        "url": "https://github.com/elanmust-GFLOer/gflo-pie/blob/a4e11cb467c2eae6f6baf2419aaa38aa653fdf16/contracts/PIECoreV02.sol",
+        "sha256": "4a2113cbac7540d38765b2f27c1017d30d31980dfa9628f2be11dd41ecfacf20"
+      },
+      "tierGate": {
+        "git_blob": "e10a4ae3a907b0f059e9b57f09b7b29dbb12eac3",
+        "url": "https://github.com/elanmust-GFLOer/gflo-pie/blob/a4e11cb467c2eae6f6baf2419aaa38aa653fdf16/contracts/EffectiveTierGateV01.sol",
+        "sha256": "e7f134c33c717aab438417527f250e83ec7f349940fce1fb37ce3eb4e4bd49b2"
+      },
+      "v02readme": {
+        "git_blob": "7bfc45d2fd06907197b3f17929bd07eed80ec21b",
+        "url": "https://github.com/elanmust-GFLOer/gflo-pie/blob/a4e11cb467c2eae6f6baf2419aaa38aa653fdf16/tests-redteam5b/README.md",
+        "sha256": "2547a1b1d1cfe7b8929fa19d9ef3f00354e5bd386dfe4f7bb1e867af07831bbc"
+      },
+      "compiledABI": {
+        "git_blob": "9cc4bc0f10419d3a09a56521d84352dc7e4feee2",
+        "url": "https://github.com/elanmust-GFLOer/gflo-pie/blob/a29ef20f938940aa89c66cbf6f685b48fa667d4c/compiled3/contracts_PIECore_sol_PIECore.abi",
+        "sha256": "64c9040cf8de06e0146129d086d0595335b0ef73523447819bd609f2103a4ffc"
+      },
+      "legacyEvidence": {
+        "git_blob": "454fb27c483ab9ebcc8ec5bd816045e74a486eb3",
+        "url": "https://github.com/elanmust-GFLOer/gflo-pie/blob/a29ef20f938940aa89c66cbf6f685b48fa667d4c/docs/evidence/sepolia-legacy-pie/2026-10-20/README.md",
+        "sha256": "0146e18f1d1d69f4d48b53ce7556343346deea5dd4c6f91de49744234eae10eb"
+      },
+      "v02gates": {
+        "git_blob": "914145477af4debe11aa81a9a16826c2186c0243",
+        "url": "https://github.com/elanmust-GFLOer/gflo-pie/blob/a4e11cb467c2eae6f6baf2419aaa38aa653fdf16/docs/VERIFIED-CONTRIBUTION-SECURITY-GATE-V01.md",
+        "sha256": "1c42991f750aec9b7a302483f106f16376af753b44837431620b4220eebb9560"
+      },
+      "v02test": {
+        "git_blob": "f10fb53c02339c7d164d5bf0c65220f004b2891f",
+        "url": "https://github.com/elanmust-GFLOer/gflo-pie/blob/a4e11cb467c2eae6f6baf2419aaa38aa653fdf16/tests-v02/test/PIECoreV02.identity.cjs",
+        "sha256": "7c61a0024ca7d9273f672c4b6be4431be02c8b0c9ac8920847028e54264791fd"
+      },
+      "deployScript": {
+        "git_blob": "c1ca179048eee50ec24244a4341dbaab69221449",
+        "url": "https://github.com/elanmust-GFLOer/gflo-pie/blob/a29ef20f938940aa89c66cbf6f685b48fa667d4c/deploy_piecore.js",
+        "sha256": "aa801501fff91ee2da5ceaade7dd3a275c3679d1280276d2c96fe5c7be3afc53"
+      },
+      "addresses": {
+        "git_blob": "c66b2c116c86a95be05be148ac23cf57ae23d91e",
+        "url": "https://github.com/elanmust-GFLOer/gflo-pie/blob/a29ef20f938940aa89c66cbf6f685b48fa667d4c/deployed_addresses.json",
+        "sha256": "68bb5dfef4dccec31106524d4b3d61968fc8b391461c64e4a76333dda2b533c9"
+      },
+      "artifactABI": {
+        "git_blob": "b640e59bb5dab4dd231a57ef73fc7f7c7f7c76a7",
+        "url": "https://github.com/elanmust-GFLOer/gflo-pie/blob/a29ef20f938940aa89c66cbf6f685b48fa667d4c/contracts_PIECore_sol_PIECore.abi",
+        "sha256": "f04f5b16e87e0296643a360112e08bd8ed501913146df6b287581e9fcf76c70d"
+      },
+      "compiledABI1": {
+        "git_blob": "b640e59bb5dab4dd231a57ef73fc7f7c7f7c76a7",
+        "url": "https://github.com/elanmust-GFLOer/gflo-pie/blob/a29ef20f938940aa89c66cbf6f685b48fa667d4c/compiled/contracts_PIECore_sol_PIECore.abi",
+        "sha256": "f04f5b16e87e0296643a360112e08bd8ed501913146df6b287581e9fcf76c70d"
+      },
+      "compiledABI2": {
+        "git_blob": "b640e59bb5dab4dd231a57ef73fc7f7c7f7c76a7",
+        "url": "https://github.com/elanmust-GFLOer/gflo-pie/blob/a29ef20f938940aa89c66cbf6f685b48fa667d4c/compiled2/contracts_PIECore_sol_PIECore.abi",
+        "sha256": "f04f5b16e87e0296643a360112e08bd8ed501913146df6b287581e9fcf76c70d"
+      }
+    }
+  },
+  "octogflo": {
+    "project": "1bd6a65f-35c7-4257-826e-e49f2e0d7521",
+    "head": "157b15c0315644a16d22df17b9453bfc1c5b8deb",
+    "published": true,
+    "inspection": "read-only",
+    "modified": false
+  },
+  "etherscan": {
+    "chain_id": 11155111,
+    "address": "0x9CF55d0b9D61Dc28EF3cb10765CF4b861Cd0991e",
+    "verified_source_exact_repo_match": true,
+    "abi_exact_compiled3_match": true,
+    "compiler": "v0.8.34+commit.80d5c536",
+    "proxy": "0",
+    "independent_runtime_recompile": "NOT EXECUTED",
+    "classification": "LEGACY_UNTRUSTED_XP"
+  },
+  "archived_runtime": {
+    "ok": true,
+    "bytes": 6558,
+    "hash": "0x08ec177b4916a018cb99ad3d5acf177f3bffa43c49c247767ce315b71f6b4481",
+    "block": 11956132,
+    "freshness": "HISTORICAL_REPOSITORY_EVIDENCE_ONLY"
+  }
+}

@@ -1,10 +1,10 @@
-name: B2.3-R6A Isolated Quarantine Security Gate
+name: R6A.1 + Pilot 0B Isolated Security Closure
 on:
   pull_request:
-    branches: ['feature/b23r5-operational-quarantine-gate']
-    paths: ['b22/**','b23/**','b23r1/**','b23r2/**','b23r3/**','b23r4/**','b23r5/**','b23r6a/**','audit-pilot/**','.github/workflows/**']
-  push:
     branches: ['feature/b23r6a-quarantine-decision-gateway']
+    paths: ['b22/**','b23/**','b23r1/**','b23r2/**','b23r3/**','b23r4/**','b23r5/**','b23r6a/**','audit-pilot/**','pilot0b/**','pilot0a-frozen/**','.github/workflows/**']
+  push:
+    branches: ['feature/b23r6a1-pilot0b-security-closure']
 permissions:
   contents: read
 jobs:
@@ -57,7 +57,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: r6a-security-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          name: r6a1-pilot0b-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: evidence/
           if-no-files-found: error
           retention-days: 30

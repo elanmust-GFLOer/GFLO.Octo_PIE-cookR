@@ -40,7 +40,8 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - run: psql --version
-      - run: python3 -m pip install --require-hashes --only-binary=:all: -r b23r6a/requirements.lock
+      - run: |
+          python3 -m pip install --require-hashes --only-binary=:all: -r b23r6a/requirements.lock
       - run: bash b22/tests/run_disposable_pg.sh
       - if: always()
         run: echo 'DB verification only; production, auth revocation, signatures, audited mutation and recovery remain BLOCKED'

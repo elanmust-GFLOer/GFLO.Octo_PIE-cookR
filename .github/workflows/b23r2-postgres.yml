@@ -29,5 +29,6 @@ jobs:
       B23_DISPOSABLE_ACK: 'YES'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - run: python3 -m pip install --require-hashes --only-binary=:all: -r b23r6a/requirements.lock
+      - run: |
+          python3 -m pip install --require-hashes --only-binary=:all: -r b23r6a/requirements.lock
       - run: bash b23r2/tests/run_disposable_pg.sh

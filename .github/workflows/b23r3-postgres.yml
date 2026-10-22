@@ -1,0 +1,33 @@
+name: B2.3-R3 PostgreSQL restricted audit lab
+on:
+  pull_request:
+    paths: ['b22/**','b23/**','b23r1/**','b23r2/**','b23r3/**','.github/workflows/b23r3-postgres.yml']
+  push:
+    branches: ['feature/b23r3-mandatory-audit-roles']
+permissions:
+  contents: read
+jobs:
+  isolated-pg16:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: b2test_octopass_r3}
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d b2test_octopass_r3"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: b2test_octopass_r3
+      B23_DISPOSABLE_ACK: 'YES'
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m pip install 'psycopg[binary]>=3.2,<4'
+      - run: bash b23r3/tests/run_disposable_pg.sh

@@ -1,0 +1,33 @@
+name: B2.3 simulated session and atomic audit gate
+on:
+  pull_request:
+    paths: ['b23/**', '.github/workflows/b23-postgres.yml']
+  push:
+    branches: ['feature/b23-auth-audit-gate']
+    paths: ['b23/**', '.github/workflows/b23-postgres.yml']
+permissions:
+  contents: read
+jobs:
+  b23-pg16:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: b2test_octopass_b23}
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d b2test_octopass_b23"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: b2test_octopass_b23
+      B23_DISPOSABLE_ACK: 'YES'
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash b23/tests/run_disposable_pg.sh

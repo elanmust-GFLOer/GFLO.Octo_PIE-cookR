@@ -13,7 +13,9 @@ ALTER TABLE private.wallet_binding_challenges OWNER TO b23r3_data_owner;
 ALTER TABLE private.wallet_bindings OWNER TO b23r3_data_owner;
 ALTER TABLE private.wallet_recovery_cases OWNER TO b23r3_data_owner;
 ALTER TABLE private.wallet_binding_audit OWNER TO b23r3_data_owner;
--- FK checks on referenced rows execute with table-owner rights; ownership does not imply schema USAGE.\nGRANT USAGE ON SCHEMA private TO b23r3_data_owner;\nGRANT USAGE ON SCHEMA private,b23_auth_sim TO b23r3_mutator;
+-- FK checks on referenced rows execute with table-owner rights; ownership does not imply schema USAGE.
+GRANT USAGE ON SCHEMA private TO b23r3_data_owner;
+GRANT USAGE ON SCHEMA private,b23_auth_sim TO b23r3_mutator;
 GRANT USAGE ON SCHEMA private TO b23r3_lab_caller;
 GRANT SELECT,UPDATE ON private.wallet_binding_state,private.wallet_binding_challenges,private.wallet_bindings TO b23r3_mutator;
 GRANT INSERT ON private.wallet_binding_audit TO b23r3_mutator;

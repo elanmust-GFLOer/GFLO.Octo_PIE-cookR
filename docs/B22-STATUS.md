@@ -1,13 +1,25 @@
-# GFLO OctoPass Backend-2 — B2.2 status
+# GFLO OctoPass Backend-2 — B2.2 PostgreSQL gate evidence
 
 Date: 2026-10-22
 
-**Status: design/test harness prepared offline, actual PostgreSQL execution NOT verified.**
+**DB candidate verification: PASS (scoped); Backend-2 release/security acceptance: BLOCKED.**
 
-A downloadable isolated B2.2 artifact was prepared in the corresponding ChatGPT project conversation. It contains the unchanged B2.1 disposable SQL candidate, nine rollback SQL fixture groups, a Python psycopg3 concurrency/role test script, a local-only disposable PostgreSQL runner, a GitHub Actions PostgreSQL 16 workflow candidate, and a detailed gate report.
+Draft PR #8: https://github.com/elanmust-GFLOer/GFLO.Octo_PIE-cookR/pull/8
 
-This is a **tracking document only**; test source and workflow are NOT yet committed to this branch and no Actions run is claimed. Do not merge this branch until the executable package has been reviewed, imported, run, and evidenced in CI.
+## Executed evidence
+- GitHub Actions run: https://github.com/elanmust-GFLOer/GFLO.Octo_PIE-cookR/actions/runs/39775373289
+- Actual job ID: 119812847380; conclusion **success** on disposable **PostgreSQL 16.15**.
+- SQL fixture PASS: duplicate wallet rejection, suspended wallet slot reservation, nonce uniqueness and RLS enabled on five tables.
+- Six Python tests ran, six passed: concurrent duplicate wallet claim, concurrent pending challenge issuance, conditional one-time challenge consumption, transaction rollback, unprivileged read denial, and explicit demonstration of owner audit-bypass gap.
+- This GitHub-housed suite is a *reduced executable subset* of the earlier offline B2.2 package. Do not claim execution of all nine original SQL fixture groups, suspension/controller epoch-lock interleaving, unprivileged write denial, actual failover, or any full API.
+- The audit bypass test passes by confirming that unsafe direct-owner UPDATE remains possible; it is **not** an audit security PASS.
 
-Critical blockers: G0 authoritative OctoPush/Supabase integration scope, G1 authoritative session revocation, G2 independently signed SIWE and consent, G3 recovery policy, G4 enforced audit with narrow transactional authority, G5 replay/failover durability. The existing schema allows owner writes without an audit event, so AUD-01/INV-10 is NOT met.
+## Unresolved blockers
+1. Authoritative Supabase session revocation checked transactionally and bound to each user/session.
+2. Reviewed SIWE+independently signed binding consent verifier.
+3. Trusted, narrowly permissioned, atomic activation/suspension/revoke functions that require matching audit writes.
+4. D3 strong recovery and cooldown, approved independently.
+5. Replay behavior across acknowledged commit loss / DB failover; multi-replica API.
+6. Profile/wallet foreign-profile isolation and policy enforcement outside SQL constraints.
 
-No production migration, deployment, EVM transaction, XP or token movement was performed.
+No production migration, EVM transaction, XP issuance, wallet replacement, deployment or main branch modification. Keep PR #8 draft until reviewed.

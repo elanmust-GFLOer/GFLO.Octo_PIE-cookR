@@ -5,7 +5,7 @@ from threading import Event, Thread
 import psycopg
 from psycopg import errors
 
-if (os.getenv("PGHOST") != "127.0.0.1" or os.getenv("PGDATABASE") != "b2test_r5_transition"
+if (os.getenv("PGHOST") != "127.0.0.1" or os.getenv("PGDATABASE") != "b2test_r4_transition"
         or os.getenv("B23_DISPOSABLE_ACK") != "YES"):
     raise SystemExit("R5 tests require acknowledged disposable localhost database")
 

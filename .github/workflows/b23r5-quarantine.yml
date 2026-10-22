@@ -1,0 +1,31 @@
+name: B2.3-R5 operational role quarantine
+on:
+  pull_request:
+    paths: ['b22/**','b23/**','b23r1/**','b23r3/**','b23r5/**','.github/workflows/b23r5-quarantine.yml']
+  push:
+    branches: ['feature/b23r5-operational-quarantine-gate']
+permissions:
+  contents: read
+jobs:
+  quarantine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: b2test_r5_quarantine}
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d b2test_r5_quarantine"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: b2test_r5_quarantine
+      B23_DISPOSABLE_ACK: 'YES'
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash b23r5/tests/run_quarantine.sh

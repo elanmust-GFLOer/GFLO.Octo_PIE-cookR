@@ -11,9 +11,11 @@ psql -d postgres -X -At -v ON_ERROR_STOP=1 -c "SELECT oid,datname FROM pg_databa
 bash b23r5/tests/run_combined_verified.sh 2>&1 | tee evidence/postgres-tests.log
 # No domain/database credential is passed to the gateway/HTTP test process.
 unset PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE PGOPTIONS
-for suite in test_gateway test_http test_manifest; do
+for suite in test_gateway test_http test_manifest test_deadlines; do
   python3 b23r6a/run_verified.py "b23r6a/tests/${suite}.py" 2>&1 | tee "evidence/${suite}.log"
 done
+python3 b23r6a/run_verified.py pilot0b/tests/test_manifest.py 2>&1 | tee evidence/pilot0b-manifest.log
+python3 b23r6a/frozen_pilot.py 2>&1 | tee evidence/pilot0a-rerun.log
 python3 - <<'PY'
 import json
 from pathlib import Path
@@ -25,6 +27,8 @@ for source,expected in manifest.items():
     assert sorted(e["test"] for e in ledger["executed"])==sorted(expected)
     assert all(e["status"]=="PASS" for e in ledger["executed"])
     total+=len(expected)
-print(f"COMBINED EXACT MANIFEST PASS {total}/{total}; zero skipped; SQL gates completed")
-(root/"acceptance.json").write_text(json.dumps({"status":"PASS","python_tests":total,"skipped":0,"sql":"PASS","production":"BLOCK"},indent=2)+"\n")
+frozen=json.loads((root/"pilot0a-rerun.json").read_text())
+assert frozen['status']=='PASS' and frozen['executed']==59 and all(t['status']=='PASS' for t in frozen['tests'])
+print(f"COMBINED EXACT MANIFEST PASS {total}/{total} + FROZEN PILOT 0A 59/59; zero skipped; SQL gates completed")
+(root/"acceptance.json").write_text(json.dumps({"status":"PASS","python_tests":total,"preserved_r6a":86,"closure_new":total-86,"frozen_pilot0a":59,"total":total+59,"skipped":0,"sql":"PASS","production":"BLOCK"},indent=2)+"\n")
 PY

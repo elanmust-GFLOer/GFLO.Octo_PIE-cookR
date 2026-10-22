@@ -41,7 +41,7 @@ def main(source,expected_count=None):
     expected=manifest[path]
     if expected_count is not None and len(expected)!=int(expected_count):
         raise SystemExit("manifest count disagrees with caller")
-    if path.startswith("b23r6a/"):
+    if path.startswith(("b23r6a/","pilot0b/")):
         module=importlib.import_module(path[:-3].replace("/","."))
     else:
         module=type(sys)("b23r5_test_module")

@@ -5,8 +5,8 @@ import socket
 import threading
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from .contracts import Request, Decision, Outcome, Reason
-from .gateway import Gateway, Adapters
+from .contracts import Request, Decision, Outcome, Reason,ExpiredDeadline
+from .gateway import Gateway, Adapters,DeliveryFailed
 from .adapters.offline import OfflinePrimary
 
 def strict_json(raw):
@@ -20,6 +20,14 @@ def strict_json(raw):
     def invalid(value):
         raise ValueError("nonfinite JSON")
     return json.loads(raw, object_pairs_hook=pairs, parse_constant=invalid)
+
+class HttpDelivery:
+    """Trusted transport; carries only a server-created deadline, no identity."""
+    def __init__(self,handler,callback):self.handler,self.callback=handler,callback
+    def prepare(self,body,budget):
+        self.handler._authorization_budget=budget
+        return lambda:self.callback(body)
+    def __call__(self,body):return self.callback(body)
 
 class Server(ThreadingHTTPServer):
     daemon_threads = False
@@ -75,13 +83,30 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def reply(self, body, code=200):
+        protected=body.get("decision")=="ALLOW" and body.get("reason_code")!="PUBLIC_HEALTH"
+        budget=getattr(self,"_authorization_budget",None) if protected else None
+        if protected and budget is None:raise ExpiredDeadline()
         raw = json.dumps(body, separators=(",", ":"), allow_nan=False).encode()
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(raw)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
+        if budget:
+            try:
+                budget.check()
+                self.connection.settimeout(min(2,budget.remaining()))
+            except ExpiredDeadline:
+                self._headers_buffer=[]
+                raise
         self.end_headers()
+        # A late expiry after headers closes the connection; never write a
+        # second response or protected payload after this point.
+        if budget:
+            try:budget.check()
+            except ExpiredDeadline:
+                self.close_connection=True
+                raise DeliveryFailed() from None
         self.wfile.write(raw)
         self.wfile.flush()
 
@@ -116,7 +141,7 @@ class Handler(BaseHTTPRequestHandler):
         def delivery(body):
             code = 200 if body["decision"] == "ALLOW" else 503 if body["decision"] == "QUARANTINE" else 401 if body["reason_code"].startswith("AUTH_") else 403
             self.reply(body, code)
-        return self.server.gateway.handle(request, self.token(), include_data=True, deliver=delivery)
+        return self.server.gateway.handle(request, self.token(), include_data=True, deliver=HttpDelivery(self,delivery))
 
     def token(self):
         auth = self.headers.get("Authorization", "")
@@ -140,7 +165,7 @@ class Handler(BaseHTTPRequestHandler):
             value = strict_json(raw)
         except (ValueError, UnicodeError, RecursionError, socket.timeout):
             return self.deny()
-        return self.server.gateway.handle(value, self.token(), deliver=self.reply)
+        return self.server.gateway.handle(value, self.token(), deliver=HttpDelivery(self,self.reply))
 
     def do_DELETE(self): self.deny(405)
     def do_PUT(self): self.deny(405)

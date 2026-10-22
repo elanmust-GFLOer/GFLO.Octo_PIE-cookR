@@ -10,6 +10,8 @@ from .contracts import (READS, SENSITIVE, ISSUER, AUDIENCE, PROJECT, Request, Id
 from .contracts import JwtVerifier,FreshUserObserver,SessionAuthority,OperationPolicy,SecurityEventEmitter
 from .events import EventStore
 from .workers import WorkerSupervisor
+from .deadline import Budget,prepare_delivery
+from .adapter_batches import InitialEvidence,FinalEvidence
 
 @dataclass(frozen=True)
 class Adapters:
@@ -23,18 +25,21 @@ class DeliveryFailed(Exception):
     pass
 
 class Gateway:
-    def __init__(self, adapters, primary, *, timeout=2.0, capacity=8, events=None):
+    def __init__(self, adapters, primary, *, timeout=1.0, capacity=8, events=None, clock=None):
+        if type(timeout) not in (int,float) or not 0<timeout<=1:
+            raise ValueError("authorization timeout may not exceed one second")
         self.adapters, self.primary = adapters, primary
         self.timeout = timeout
+        self.clock=clock
         self.slots = threading.BoundedSemaphore(capacity)
         self.workers = WorkerSupervisor()
         self.events = events or EventStore()
         self.ledger = OrderedDict()
         self.ledger_lock = threading.Lock()
 
-    def _request_record(self, identity, request):
+    def _request_record(self, identity, request, budget):
         key = (identity.project, identity.subject, request.request_id)
-        with self.ledger_lock:
+        with budget.hold(self.ledger_lock):
             now = time.monotonic()
             while self.ledger and next(iter(self.ledger.values()))[1] <= now:
                 self.ledger.popitem(last=False)
@@ -53,23 +58,44 @@ class Gateway:
         consume it, synchronously, while the fence is held. HTTP writes use this
         path; a prior ALLOW object cannot authorize a later data read.
         """
-        if deliver:
-            transport = deliver
-            def deliver(body):
-                try:
-                    transport(body)
-                except Exception:
-                    raise DeliveryFailed() from None
+        budget=Budget(self.timeout,self.clock)
+        result=self._handle(value,token,include_data=include_data,deliver=deliver,budget=budget)
+        # _handle has released/reaped its resources before this final decision.
+        # A late cleanup cannot return a new protected ALLOW either.
+        if result.decision==Outcome.ALLOW and result.reason_code!=Reason.PUBLIC_HEALTH:
+            try:budget.check()
+            except ExpiredDeadline:
+                result=Decision(Outcome.QUARANTINE,Reason.AUTHORITY_TIMEOUT,result.trace_id,result.request_id)
+                self._finish(result,None,None,None)
+        return result
+
+    def _handle(self,value,token,*,include_data,deliver,budget):
+        transport=deliver
+        delivery_started=False
+        def deliver(body):
+            nonlocal delivery_started
+            try:
+                if body.get("decision")=="ALLOW" and body.get("reason_code")!="PUBLIC_HEALTH":
+                    commit=prepare_delivery(transport,body,budget)
+                    delivery_started=True
+                    commit()
+                else:transport(body)
+            except ExpiredDeadline:raise
+            except Exception:raise DeliveryFailed() from None
+        if transport is None:deliver=None
         trace = str(uuid.uuid4())
         request = None
         identity = None
         locked = False
         slot = False
-        deadline = time.monotonic() + self.timeout
+        deadline = budget.expires
         def decision(outcome, reason):
             return Decision(outcome, reason, trace, request.request_id if request else str(uuid.uuid4()))
         def run(adapter, method, *args):
-            return self.workers.run(adapter, method, args, deadline)
+            budget.check()
+            value=self.workers.run(adapter, method, args, deadline)
+            budget.check()
+            return value
         try:
             request = Request.parse(value)
             if request.operation not in READS | SENSITIVE:
@@ -89,14 +115,12 @@ class Gateway:
             slot = True
             if type(token) is not str or not token or len(token.encode()) > 8192:
                 raise Rejected(Reason.AUTH_MISSING)
-            identity = run(self.adapters.jwt, "verify", token)
+            identity,user,session = run(InitialEvidence(self.adapters,self._identity), "verify", token)
             self._identity(identity)
-            user = run(self.adapters.user, "observe", identity)
             if type(user) is not UserObservation:
                 raise ValueError("malformed user evidence")
             if user.subject != identity.subject:
                 raise Rejected(Reason.SUBJECT_MISMATCH)
-            session = run(self.adapters.session, "observe", identity)
             if type(session) is not SessionObservation or type(session.state) is not SessionState or type(session.generation) is not int:
                 raise ValueError("malformed session evidence")
             if (session.subject, session.session_id) != (identity.subject, identity.session_id):
@@ -113,10 +137,11 @@ class Gateway:
                 raise ValueError("malformed policy evidence")
             if not policy:
                 raise Rejected(Reason.POLICY_DENIED)
-            self._request_record(identity, request)
-            locked = self.primary.acquire(identity.subject, deadline - time.monotonic())
+            self._request_record(identity, request,budget)
+            locked = self.primary.acquire(identity.subject, budget.remaining())
             if not locked:
                 raise ExpiredDeadline()
+            budget.check()
             local = self.primary.snapshot(identity.subject)
             if (type(local) is not LocalState or type(local.generation) is not int
                     or local.generation < 0 or local.binding_status not in {"unbound", "active", "suspended"}):
@@ -141,7 +166,7 @@ class Gateway:
                 return self._finish(result, request, identity, deliver)
             # Fresh independent session authority and policy at the release
             # point: JWT/user validity alone never establishes session liveness.
-            final_session = run(self.adapters.session, "observe", identity)
+            final_session,final_policy = run(FinalEvidence(self.adapters), "observe", identity,request,session)
             if (type(final_session) is not SessionObservation
                     or type(final_session.state) is not SessionState
                     or type(final_session.generation) is not int):
@@ -150,28 +175,44 @@ class Gateway:
                 if type(final_session) is SessionObservation and final_session.state == SessionState.REVOKED:
                     raise Rejected(Reason.SESSION_REVOKED)
                 raise Unavailable()
-            if run(self.adapters.policy, "authorize", identity, request) is not True:
+            if final_policy is not True:
                 raise Rejected(Reason.POLICY_DENIED)
             self._identity(identity)
-            if time.monotonic() >= deadline:
-                raise ExpiredDeadline()
+            budget.check()
             if self.primary.snapshot(identity.subject) != local:
                 raise Rejected(Reason.GENERATION_STALE)
-            data = self.events.summary() if include_data else None
-            self.events.commit(event)
+            try:data = self.events.summary_before_deadline(budget) if include_data else None
+            except ExpiredDeadline:raise
+            except Exception:
+                return self._finish(decision(Outcome.QUARANTINE,Reason.AUDIT_UNAVAILABLE),request,identity,deliver)
+            budget.check()
+            response=result.as_dict()
+            if data is not None:response["data"]=data
+            budget.check()
+            # The trusted local sink checks INSIDE its lock, before append.
+            # A slow/failed commit never authorizes a subsequent release.
+            try:self.events.commit_before_deadline(event,budget)
+            except ExpiredDeadline:raise
+            except Exception:
+                return self._finish(decision(Outcome.QUARANTINE,Reason.AUDIT_UNAVAILABLE),request,identity,deliver)
+            budget.check()
+            self._identity(identity)
+            if self.primary.snapshot(identity.subject)!=local:
+                raise Rejected(Reason.GENERATION_STALE)
+            budget.check()
             if deliver:
-                response = result.as_dict()
-                if data is not None:
-                    response["data"] = data
                 deliver(response)
+            budget.check()
             return result
         except DeliveryFailed:
             # A failed/partially completed network write is never retried.
-            return result
+            try:budget.check()
+            except ExpiredDeadline:return decision(Outcome.QUARANTINE,Reason.AUTHORITY_TIMEOUT)
+            return decision(Outcome.QUARANTINE,Reason.INTERNAL_ERROR)
         except Rejected as exc:
             return self._finish(decision(Outcome.DENY, exc.reason), request, identity, deliver)
         except ExpiredDeadline:
-            return self._finish(decision(Outcome.QUARANTINE, Reason.AUTHORITY_TIMEOUT), request, identity, deliver)
+            return self._finish(decision(Outcome.QUARANTINE, Reason.AUTHORITY_TIMEOUT), request, identity, None if delivery_started else deliver)
         except Unavailable:
             return self._finish(decision(Outcome.QUARANTINE, Reason.AUTHORITY_UNAVAILABLE), request, identity, deliver)
         except (ValueError, TypeError, AttributeError):
@@ -201,7 +242,7 @@ class Gateway:
         try:
             self.events.commit(self.events.event(result, request.operation if request else "unknown", identity))
         except Exception:
-            result = Decision(Outcome.QUARANTINE, Reason.AUDIT_UNAVAILABLE, result.trace_id, result.request_id)
+            pass  # Terminal denial stays non-executing; preserve its root cause.
         if deliver:
             try:
                 deliver(result.as_dict())

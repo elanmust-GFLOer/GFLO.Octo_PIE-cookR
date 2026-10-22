@@ -1,0 +1,34 @@
+{
+  "chain_id": 11155111,
+  "contract": "0x9cf55d0b9d61dc28ef3cb10765cf4b861cd0991e",
+  "classification": "LEGACY_UNTRUSTED_XP",
+  "deployment_hash": null,
+  "runtime_hash": null,
+  "abi_hash": {
+    "algorithm": "sha256",
+    "value": "64c9040cf8de06e0146129d086d0595335b0ef73523447819bd609f2103a4ffc"
+  },
+  "source_id": "github:elanmust-GFLOer/gflo-pie@a29ef20f938940aa89c66cbf6f685b48fa667d4c/contracts/PIECore.sol",
+  "source_hash": {
+    "algorithm": "sha256",
+    "value": "25f4cf601f8ea6a7066d2fb7dacf0f08c6307f0579d9421072461a4dbafe2ea4"
+  },
+  "proxy_kind": "UNKNOWN",
+  "implementation": null,
+  "read_selectors": [],
+  "evidence_ref": "pilot0a-frozen/evidence/anchors.json",
+  "verification": "UNKNOWN",
+  "issued_at": null,
+  "expires_at": null,
+  "non_production": true,
+  "production_authorized": false,
+  "canonical_xp_authorized": false,
+  "missing_evidence": [
+    "raw creation bytecode",
+    "raw runtime bytecode",
+    "fresh chain observation",
+    "independently verified proxy/implementation identity",
+    "approved read-selector proofs"
+  ],
+  "note": "Historical ABI/source snapshots only. No complete or fresh runtime observation. No approved Registry entry. Incomplete descriptive record, not a valid Manifest."
+}

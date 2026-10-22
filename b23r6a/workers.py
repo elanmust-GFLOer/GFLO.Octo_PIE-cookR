@@ -38,7 +38,8 @@ class WorkerSupervisor:
     def run(self, adapter, method, args, deadline, stage_limit=.4):
         if adapter is None or self.failed:
             raise Unavailable()
-        budget = min(stage_limit, deadline - time.monotonic())
+        stage_end=min(deadline,time.monotonic()+stage_limit)
+        budget = stage_end-time.monotonic()
         if budget <= 0:
             raise ExpiredDeadline()
         receiver, sender = self.context.Pipe(duplex=False)
@@ -53,7 +54,7 @@ class WorkerSupervisor:
             with self.lock:
                 self.active.add(process.pid)
             sender.close()
-            remaining = min(budget, deadline - time.monotonic())
+            remaining = stage_end-time.monotonic()
             if remaining <= 0 or not receiver.poll(remaining):
                 raise ExpiredDeadline()
             status, value = pickle.loads(receiver.recv_bytes(2048))
@@ -63,7 +64,6 @@ class WorkerSupervisor:
                 raise Unavailable()
             if status != "ok":
                 raise RuntimeError("adapter failed")
-            return value
         finally:
             if started:
                 # Even a worker which returned a result is stopped: it cannot
@@ -83,3 +83,6 @@ class WorkerSupervisor:
                 process.close()
             sender.close()
             receiver.close()
+        # Startup, decoding AND cleanup are charged; no stale result escapes.
+        if time.monotonic()>=stage_end:raise ExpiredDeadline()
+        return value

@@ -20,7 +20,8 @@ GRANT USAGE ON SCHEMA private TO b23r3_lab_caller;
 GRANT SELECT,UPDATE ON private.wallet_binding_state,private.wallet_binding_challenges,private.wallet_bindings TO b23r3_mutator;
 GRANT INSERT ON private.wallet_binding_audit TO b23r3_mutator;
 GRANT SELECT ON private.wallet_binding_audit TO b23r3_mutator;
-GRANT SELECT ON b23_auth_sim.sessions TO b23r3_mutator;
+-- FOR UPDATE row locking requires UPDATE privilege on the lab session table.
+GRANT SELECT,UPDATE ON b23_auth_sim.sessions TO b23r3_mutator;
 CREATE POLICY r3_mutator_state ON private.wallet_binding_state TO b23r3_mutator USING(true) WITH CHECK(true);
 CREATE POLICY r3_mutator_challenge ON private.wallet_binding_challenges TO b23r3_mutator USING(true) WITH CHECK(true);
 CREATE POLICY r3_mutator_binding ON private.wallet_bindings TO b23r3_mutator USING(true) WITH CHECK(true);

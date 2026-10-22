@@ -1,0 +1,33 @@
+name: B2.3-R2 PostgreSQL independent connection races
+on:
+  pull_request:
+    paths: ['b22/**','b23/**','b23r1/**','b23r2/**','.github/workflows/b23r2-postgres.yml']
+  push:
+    branches: ['feature/b23r2-concurrency-gate']
+permissions:
+  contents: read
+jobs:
+  pg16-races:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: b2test_octopass_r2}
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d b2test_octopass_r2"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: b2test_octopass_r2
+      B23_DISPOSABLE_ACK: 'YES'
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m pip install 'psycopg[binary]>=3.2,<4'
+      - run: bash b23r2/tests/run_disposable_pg.sh

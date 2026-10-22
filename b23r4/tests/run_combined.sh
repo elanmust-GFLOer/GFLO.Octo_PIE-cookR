@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "${PGHOST:-}" == "127.0.0.1" && "${B23_DISPOSABLE_ACK:-}" == "YES" && "${B22_DISPOSABLE_ACK:-}" == "YES" ]] || { echo 'R4 requires local disposable PG' >&2; exit 2; }
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+export PGOPTIONS="-c gflo.b2_disposable_ok=YES"
+export PGDATABASE="b2test_r4_baseline"
+psql -X -v ON_ERROR_STOP=1 -f "$root/b22/sql/001_backend2_schema_DRAFT.sql"
+psql -X -v ON_ERROR_STOP=1 -f "$root/b22/tests/01_schema_invariants.sql"
+python3 "$root/b22/tests/02_pg_races.py"
+export PGDATABASE="b2test_r4_transition"
+psql -X -v ON_ERROR_STOP=1 -f "$root/b22/sql/001_backend2_schema_DRAFT.sql"
+psql -X -v ON_ERROR_STOP=1 -f "$root/b23/sql/002_b23_auth_audit.sql"
+psql -X -v ON_ERROR_STOP=1 -f "$root/b23/tests/01_auth_audit.sql"
+psql -X -v ON_ERROR_STOP=1 -f "$root/b23/tests/02_role_denial.sql"
+psql -X -v ON_ERROR_STOP=1 -f "$root/b23r1/sql/003_restrict_and_gate.sql"
+psql -X -v ON_ERROR_STOP=1 -f "$root/b23r1/tests/01_r1_restrictions.sql"
+python3 "$root/b23r2/tests/01_races.py"
+psql -X -v ON_ERROR_STOP=1 -f "$root/b23r3/sql/004_role_audit_lab.sql"
+python3 "$root/b23r3/tests/01_role_audit.py"
+python3 "$root/b23r4/tests/01_deterministic_locks.py"
+echo "R4 lab regression PASS; production Auth, SIWE and complete audit remain BLOCKED"

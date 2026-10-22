@@ -142,6 +142,10 @@ class Gateway:
             # Fresh independent session authority and policy at the release
             # point: JWT/user validity alone never establishes session liveness.
             final_session = run(self.adapters.session, "observe", identity)
+            if (type(final_session) is not SessionObservation
+                    or type(final_session.state) is not SessionState
+                    or type(final_session.generation) is not int):
+                raise ValueError("malformed final session evidence")
             if type(final_session) is not SessionObservation or final_session != session:
                 if type(final_session) is SessionObservation and final_session.state == SessionState.REVOKED:
                     raise Rejected(Reason.SESSION_REVOKED)

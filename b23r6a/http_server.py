@@ -86,7 +86,12 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.flush()
 
     def deny(self, code=400):
-        self.reply(Decision(Outcome.DENY, Reason.INVALID_REQUEST, str(uuid.uuid4()), str(uuid.uuid4())).as_dict(), code)
+        decision=Decision(Outcome.DENY, Reason.INVALID_REQUEST, str(uuid.uuid4()), str(uuid.uuid4()))
+        try:
+            self.server.gateway.events.commit(self.server.gateway.events.event(decision,"unknown"))
+        except Exception:
+            pass  # No protected data is available on this path.
+        self.reply(decision.as_dict(), code)
 
     def headers_valid(self):
         host = f"127.0.0.1:{self.server.server_port}"

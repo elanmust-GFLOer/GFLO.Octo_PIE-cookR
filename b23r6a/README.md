@@ -68,7 +68,7 @@ belongs to future audited PostgreSQL functions. No domain writes exist here.
 ## Verification and evidence
 
 test-manifest.json pins every class/method identity: B22 6, R2 7, R3 6, R4 3,
-R5 6, gateway 40, HTTP 13, manifest 3 = **84 Python tests**, plus SQL gates.
+R5 6, gateway 42, HTTP 13, manifest 3 = **86 Python tests**, plus SQL gates.
 No skips or expected failures are accepted. The old 28 tests run unchanged
 before the R5 overlay; exact A/B fixture and ACL denial checks then run after it.
 The unsafe laboratory positive tests prove only their explicitly limited scope.

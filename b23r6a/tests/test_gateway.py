@@ -7,6 +7,7 @@ import unittest
 import uuid
 from dataclasses import replace
 from pathlib import Path
+from unittest.mock import patch
 from b23r6a.contracts import *
 from b23r6a.gateway import Gateway, Adapters
 from b23r6a.adapters.offline import (OfflineJwtVerifier, OfflineUsers, OfflineSessions,
@@ -15,6 +16,8 @@ from b23r6a.adapters.offline import (OfflineJwtVerifier, OfflineUsers, OfflineSe
 class SharedAuthority:
     def __init__(self, flag): self.flag=flag
     def observe(self, identity):
+        if self.flag.value==5:
+            return SessionObservation(identity.subject,identity.session_id,"ACTIVE",0)
         state=(SessionState.ACTIVE,SessionState.REVOKED,SessionState.UNKNOWN)[self.flag.value]
         return SessionObservation(identity.subject,identity.session_id,state,0)
 
@@ -268,5 +271,25 @@ class GatewaySecurity(unittest.TestCase):
             d,body=self.call();self.assertEqual(d.reason_code,Reason.CAPACITY_EXHAUSTED);self.assertNotIn("data",body)
             self.assertEqual(self.call(request("system.health.read"))[0].decision,Outcome.ALLOW)
         finally:self.gateway.slots.release()
+
+    def test_interrupted_adapter_is_reaped_without_late_effect(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=str(Path(tmp)/"late-interrupted")
+            self.gateway.adapters=replace(self.adapters,jwt=FaultAdapter(.8,late_write=path))
+            receiver,sender=self.gateway.workers.context.Pipe(duplex=False)
+            with patch.object(receiver,"poll",side_effect=InterruptedError()), patch.object(
+                    self.gateway.workers.context,"Pipe",return_value=(receiver,sender)):
+                d,body=self.call()
+            self.assertEqual(d.reason_code,Reason.INTERNAL_ERROR);self.assertNotIn("data",body)
+            self.assertFalse(self.gateway.workers.active)
+            time.sleep(.85);self.assertFalse(Path(path).exists())
+            self.gateway.adapters=self.adapters
+            self.assertEqual(self.call()[0].decision,Outcome.ALLOW)
+
+    def test_malformed_final_session_evidence_quarantined(self):
+        import multiprocessing
+        flag=multiprocessing.get_context("spawn").Value("i",0)
+        self.gateway.adapters=replace(self.adapters,session=SharedAuthority(flag),emitter=SwitchAtAudit(flag,5))
+        d,body=self.call();self.assertEqual(d.reason_code,Reason.EVIDENCE_INVALID);self.assertNotIn("data",body)
 
 if __name__=="__main__":unittest.main(verbosity=2)

@@ -1,0 +1,44 @@
+name: B2.2 isolated PostgreSQL 16
+on:
+  pull_request:
+    paths:
+      - 'b22/**'
+      - '.github/workflows/b22-postgres.yml'
+  push:
+    branches: ['feature/b22-postgres-isolated']
+    paths:
+      - 'b22/**'
+      - '.github/workflows/b22-postgres.yml'
+permissions:
+  contents: read
+jobs:
+  disposable-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: b2test_octopass_b22
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d b2test_octopass_b22"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: b2test_octopass_b22
+      B22_DISPOSABLE_ACK: 'YES'
+    steps:
+      - uses: actions/checkout@v4
+      - run: psql --version
+      - run: python3 -m pip install 'psycopg[binary]>=3.2,<4'
+      - run: bash b22/tests/run_disposable_pg.sh
+      - if: always()
+        run: echo 'DB verification only; production, auth revocation, signatures, audited mutation and recovery remain BLOCKED'

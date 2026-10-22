@@ -3,6 +3,8 @@ import json
 import threading
 import unittest
 import uuid
+import socket
+import time
 from unittest.mock import patch
 from dataclasses import replace
 from b23r6a.http_server import Server,Handler
@@ -118,5 +120,21 @@ class HttpSecurity(unittest.TestCase):
         self.gateway.adapters=replace(self.adapters,session=SharedAuthority(flag),emitter=SwitchAtAudit(flag,2))
         code,body=self.call("GET","/v1/audit/summary",headers={"Authorization":"Bearer "+test_token(self.key)})
         self.assertEqual(code,503);self.assertEqual(body["reason_code"],"AUTHORITY_UNAVAILABLE");self.assertNotIn("data",body)
+
+    def test_absolute_http_deadline_releases_capacity(self):
+        sock=socket.create_connection(("127.0.0.1",self.server.server_port),timeout=5)
+        try:
+            sock.sendall((f"POST /v1/decisions HTTP/1.0\r\nHost: 127.0.0.1:{self.server.server_port}\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n"+"{").encode())
+            start=time.monotonic()
+            # Keep the inactivity timeout alive; the absolute deadline must win.
+            for _ in range(3):
+                time.sleep(.8)
+                try:sock.sendall(b" ")
+                except OSError:break
+            try:self.assertEqual(sock.recv(4096),b"")
+            except ConnectionResetError:pass
+            self.assertLess(time.monotonic()-start,4.5)
+        finally:sock.close()
+        self.assertEqual(self.call("GET","/healthz")[0],200)
 
 if __name__=="__main__":unittest.main(verbosity=2)

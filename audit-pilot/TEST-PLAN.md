@@ -8,8 +8,8 @@ Supabase credentials, real login, wallet connection or production sign-out.
 2. Run the original 28 named Python tests and all SQL gates in separate fresh
    baseline/transition databases. Apply R5 last. Prove exact RPC ACL denial with
    existing A/B fixtures and no restored grant.
-3. Run the 39 gateway cases, 12 real loopback HTTP cases and 3 manifest cases.
-   Require all 82 exact names, zero skips/errors/expected failures.
+3. Run the 40 gateway cases, 13 real loopback HTTP cases and 3 manifest cases.
+   Require all 84 exact names, zero skips/errors/expected failures.
 4. Observe invalid/expired/foreign JWTs, A/B substitution, REVOKED/UNKNOWN,
    timeout/partial failure/recovery and stale generation. No protected data may
    appear on authority or audit failure.

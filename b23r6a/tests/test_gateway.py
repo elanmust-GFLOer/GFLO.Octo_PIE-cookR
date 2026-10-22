@@ -261,4 +261,12 @@ class GatewaySecurity(unittest.TestCase):
         self.primary.states[USER_A]=LocalState(0,"unknown")
         d,body=self.call();self.assertEqual(d.reason_code,Reason.EVIDENCE_INVALID);self.assertNotIn("data",body)
 
+    def test_health_independent_of_protected_capacity(self):
+        self.gateway=Gateway(self.adapters,self.primary,capacity=1)
+        self.assertTrue(self.gateway.slots.acquire(blocking=False))
+        try:
+            d,body=self.call();self.assertEqual(d.reason_code,Reason.CAPACITY_EXHAUSTED);self.assertNotIn("data",body)
+            self.assertEqual(self.call(request("system.health.read"))[0].decision,Outcome.ALLOW)
+        finally:self.gateway.slots.release()
+
 if __name__=="__main__":unittest.main(verbosity=2)

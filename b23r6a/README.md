@@ -31,7 +31,7 @@ The response frame is bounded and atomic within PIPE_BUF; poll cannot accept a
 partially written, indefinitely stalled frame. Every worker is terminated/reaped
 before reuse, including successful workers. An unreapable worker seals the
 supervisor against further adapter work. Eight protected requests and sixteen
-HTTP workers bound admission; sockets have a 2-second inactivity timeout. These
+HTTP workers bound admission; sockets have a 2-second inactivity timeout and a 3-second absolute connection lifetime. These
 are laboratory Linux bounds, not hard real-time guarantees. Trusted adapters are
 read-only and receive no domain credentials. Killing a process cannot undo an
 external mutation already committed: such adapters are expressly prohibited.
@@ -68,7 +68,7 @@ belongs to future audited PostgreSQL functions. No domain writes exist here.
 ## Verification and evidence
 
 test-manifest.json pins every class/method identity: B22 6, R2 7, R3 6, R4 3,
-R5 6, gateway 39, HTTP 12, manifest 3 = **82 Python tests**, plus SQL gates.
+R5 6, gateway 40, HTTP 13, manifest 3 = **84 Python tests**, plus SQL gates.
 No skips or expected failures are accepted. The old 28 tests run unchanged
 before the R5 overlay; exact A/B fixture and ACL denial checks then run after it.
 The unsafe laboratory positive tests prove only their explicitly limited scope.

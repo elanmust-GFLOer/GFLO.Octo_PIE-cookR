@@ -47,9 +47,19 @@ class Server(ThreadingHTTPServer):
             raise
 
     def process_request_thread(self, request, client_address):
+        def abort():
+            try: request.shutdown(socket.SHUT_RDWR)
+            except OSError: pass
+            request.close()
+        # Absolute connection lifetime, including slowly trickled headers/body.
+        timer=threading.Timer(3,abort)
+        timer.daemon=True
+        timer.start()
         try:
             super().process_request_thread(request, client_address)
         finally:
+            timer.cancel()
+            timer.join(.1)
             self.worker_slots.release()
 
     def handle_error(self, request, client_address):

@@ -27,6 +27,12 @@ class Ledger(unittest.TextTestResult):
         self.entries.append({"test":type(test).__name__+"."+test._testMethodName,"status":"STARTED"})
     def addSuccess(self,test):
         self.entries[-1]["status"]="PASS";super().addSuccess(test)
+    def addFailure(self,test,err):
+        self.entries[-1]["status"]="FAIL";super().addFailure(test,err)
+    def addError(self,test,err):
+        self.entries[-1]["status"]="ERROR";super().addError(test,err)
+    def addSkip(self,test,reason):
+        self.entries[-1]["status"]="SKIPPED";super().addSkip(test,reason)
     def __init__(self,*args,**kwargs): super().__init__(*args,**kwargs);self.entries=[]
 
 def main(source,expected_count=None):

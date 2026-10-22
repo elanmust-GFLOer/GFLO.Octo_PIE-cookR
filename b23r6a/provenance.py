@@ -3,6 +3,7 @@ import ast
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -31,8 +32,18 @@ def main():
         actual=sorted(c.name+"."+m.name for c in source.body if isinstance(c,ast.ClassDef)
                       for m in c.body if isinstance(m,ast.FunctionDef) and m.name.startswith("test_"))
         assert actual==sorted(expected), "manifest substitution: "+path
+        if not path.startswith("b23r6a/"):
+            original=ast.parse(git("show",BASE+":"+path))
+            pinned=sorted(c.name+"."+m.name for c in original.body if isinstance(c,ast.ClassDef)
+                          for m in c.body if isinstance(m,ast.FunctionDef) and m.name.startswith("test_"))
+            assert pinned==sorted(expected), "R5 baseline test identities changed"
     # R5 quarantine definitions are byte-for-byte unchanged.
-    assert git("show",BASE+":b23r5/sql/005_operational_quarantine.sql")== (ROOT/"b23r5/sql/005_operational_quarantine.sql").read_text().rstrip()
+    assert git("rev-parse",BASE+":b23r5/sql/005_operational_quarantine.sql")==git("hash-object","b23r5/sql/005_operational_quarantine.sql")
+    for workflow in (ROOT/".github/workflows").glob("*.yml"):
+        text=workflow.read_text()
+        assert all(re.fullmatch(r"[0-9a-f]{40}",ref) for ref in re.findall(r"uses: [^@\s]+@([^\s]+)",text)), "mutable Action reference"
+        assert all(re.fullmatch(r"postgres:16@sha256:[0-9a-f]{64}",image) for image in re.findall(r"image: ([^\s]+)",text)), "mutable PostgreSQL reference"
+        assert all("--require-hashes --only-binary=:all: -r b23r6a/requirements.lock" in line for line in text.splitlines() if "pip install" in line), "unlocked dependency installation"
     tracked=git("ls-files").splitlines()
     hashes={p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in tracked}
     import importlib.metadata as md

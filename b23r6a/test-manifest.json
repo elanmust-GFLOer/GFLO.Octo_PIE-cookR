@@ -52,6 +52,7 @@
     "GatewaySecurity.test_foreign_issuer_denied",
     "GatewaySecurity.test_foreign_project_denied",
     "GatewaySecurity.test_generation_change_during_read_denied",
+    "GatewaySecurity.test_health_independent_of_protected_capacity",
     "GatewaySecurity.test_health_survives_auth_outage",
     "GatewaySecurity.test_identical_retry_revalidates_evidence",
     "GatewaySecurity.test_invalid_jwt_signature_denied",
@@ -79,6 +80,7 @@
     "GatewaySecurity.test_valid_offline_observer_authorized"
   ],
   "b23r6a/tests/test_http.py": [
+    "HttpSecurity.test_absolute_http_deadline_releases_capacity",
     "HttpSecurity.test_cookie_cannot_supply_identity",
     "HttpSecurity.test_duplicate_json_and_auth_context_rejected",
     "HttpSecurity.test_host_and_origin_rejected",

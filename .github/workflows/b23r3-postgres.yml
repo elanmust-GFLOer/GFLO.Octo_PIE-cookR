@@ -1,18 +1,18 @@
 name: B2.3-R3 PostgreSQL restricted audit lab
 on:
   pull_request:
-    paths: ['b22/**','b23/**','b23r1/**','b23r2/**','b23r3/**','.github/workflows/b23r3-postgres.yml']
+    paths: ['b23r6a/**','b22/**','b23/**','b23r1/**','b23r2/**','b23r3/**','.github/workflows/b23r3-postgres.yml']
   push:
     branches: ['feature/b23r3-mandatory-audit-roles']
 permissions:
   contents: read
 jobs:
   isolated-pg16:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     services:
       postgres:
-        image: postgres:16
+        image: postgres:16@sha256:9e2cf6287f25c3151f4c9421ccce2b17f3e60061c111a29165e0d2cdd9ff0a97
         env: {POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: b2test_octopass_r3}
         ports: ['5432:5432']
         options: >-
@@ -28,6 +28,7 @@ jobs:
       PGDATABASE: b2test_octopass_r3
       B23_DISPOSABLE_ACK: 'YES'
     steps:
-      - uses: actions/checkout@v4
-      - run: python3 -m pip install 'psycopg[binary]>=3.2,<4'
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - run: |
+          python3 -m pip install --require-hashes --only-binary=:all: -r b23r6a/requirements.lock
       - run: bash b23r3/tests/run_disposable_pg.sh

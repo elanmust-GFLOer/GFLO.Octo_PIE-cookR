@@ -28,7 +28,26 @@ ROLLBACK;
 BEGIN;
 -- A user armed with the complete victim identifiers is still refused at the RPC ACL;
 -- the lab function itself remains unsafe if that grant were restored.
-GRANT USAGE ON SCHEMA private TO b23r3_lab_caller;
+-- Genuine A/B fixtures; no grant is restored, even inside this transaction.
+INSERT INTO private.wallet_binding_state(user_id,chain_id,binding_status) VALUES
+ ('00000000-0000-4000-8000-000000000001',1,'active'),
+ ('00000000-0000-4000-8000-000000000010',1,'active');
+INSERT INTO b23_auth_sim.sessions(session_id,user_id) VALUES
+ ('00000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000001'),
+ ('00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000010');
+INSERT INTO private.wallet_bindings(binding_id,user_id,chain_id,wallet_address,epoch,consent_version,consent_digest,scopes) VALUES
+ ('00000000-0000-4000-8000-000000000003','00000000-0000-4000-8000-000000000001',1,decode(repeat('a1',20),'hex'),0,'R6A-fixture',decode(repeat('a1',32),'hex'),ARRAY['bind:wallet']),
+ ('00000000-0000-4000-8000-000000000012','00000000-0000-4000-8000-000000000010',1,decode(repeat('b1',20),'hex'),0,'R6A-fixture',decode(repeat('b1',32),'hex'),ARRAY['bind:wallet']);
+DO $x$ BEGIN
+ IF has_function_privilege('b23r3_lab_caller',
+ 'private.b23r3_suspend_lab(uuid,uuid,bigint,uuid,bigint,uuid,bytea)','EXECUTE') THEN
+  RAISE EXCEPTION 'R6A independent ACL oracle failed';
+ END IF;
+ IF (SELECT count(*) FROM b23_auth_sim.sessions WHERE session_id IN
+ ('00000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000011'))<>2 THEN
+  RAISE EXCEPTION 'R6A A/B fixtures missing';
+ END IF;
+END $x$;
 SET LOCAL ROLE b23r3_lab_caller;
 DO $x$
 BEGIN
@@ -40,7 +59,11 @@ BEGIN
    '00000000-0000-4000-8000-000000000013'::uuid,
    decode(repeat('ff',32),'hex'));
   RAISE EXCEPTION 'R5 known victim tuple reached suspended endpoint';
- EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+ EXCEPTION WHEN insufficient_privilege THEN
+  IF SQLERRM <> 'permission denied for function b23r3_suspend_lab' THEN
+   RAISE EXCEPTION 'wrong denial oracle: %',SQLERRM;
+  END IF;
+ END;
  RAISE NOTICE 'PASS R5 victim identifier RPC ACL denied for lab role';
 END $x$;
 ROLLBACK;

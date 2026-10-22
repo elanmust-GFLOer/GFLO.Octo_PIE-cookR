@@ -1,18 +1,18 @@
 name: B2.3-R4 Combined PostgreSQL security lab
 on:
   pull_request:
-    paths: ['b22/**','b23/**','b23r1/**','b23r2/**','b23r3/**','b23r4/**','.github/workflows/b23r4-combined.yml']
+    paths: ['b23r6a/**','b22/**','b23/**','b23r1/**','b23r2/**','b23r3/**','b23r4/**','.github/workflows/b23r4-combined.yml']
   push:
     branches: ['feature/b23r4-combined-security-gate']
 permissions:
   contents: read
 jobs:
   combined-postgres:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     services:
       postgres:
-        image: postgres:16
+        image: postgres:16@sha256:9e2cf6287f25c3151f4c9421ccce2b17f3e60061c111a29165e0d2cdd9ff0a97
         env: {POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: postgres}
         ports: ['5432:5432']
         options: >-
@@ -28,7 +28,7 @@ jobs:
       B22_DISPOSABLE_ACK: 'YES'
       B23_DISPOSABLE_ACK: 'YES'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Display immutable run identity and engine
         run: |
           echo "SHA=$GITHUB_SHA"
@@ -36,7 +36,8 @@ jobs:
           git rev-parse HEAD^{tree}
           psql --version
           python3 --version
-      - run: python3 -m pip install 'psycopg[binary]>=3.2,<4'
+      - run: |
+          python3 -m pip install --require-hashes --only-binary=:all: -r b23r6a/requirements.lock
       - name: Create fresh isolated databases
         run: |
           psql -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE b2test_r4_baseline;'

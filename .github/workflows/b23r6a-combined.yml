@@ -1,0 +1,63 @@
+name: B2.3-R6A Isolated Quarantine Security Gate
+on:
+  pull_request:
+    branches: ['feature/b23r5-operational-quarantine-gate']
+    paths: ['b22/**','b23/**','b23r1/**','b23r2/**','b23r3/**','b23r4/**','b23r5/**','b23r6a/**','audit-pilot/**','.github/workflows/**']
+  push:
+    branches: ['feature/b23r6a-quarantine-decision-gateway']
+permissions:
+  contents: read
+jobs:
+  combined-r6a:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16@sha256:9e2cf6287f25c3151f4c9421ccce2b17f3e60061c111a29165e0d2cdd9ff0a97
+        env: {POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: postgres}
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      B22_DISPOSABLE_ACK: 'YES'
+      B23_DISPOSABLE_ACK: 'YES'
+      R6A_DISPOSABLE_ACK: 'YES'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install hash-locked wheel dependencies
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --require-hashes --only-binary=:all: -r b23r6a/requirements.lock
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Verify source and dependency provenance
+        run: |
+          python3 b23r6a/provenance.py
+          python3 -m pip freeze --all | tee evidence/pip-freeze.log
+          psql --version | tee evidence/psql-client.log
+          psql -d postgres -At -c 'SELECT version()' | tee evidence/postgres-engine.log
+          docker inspect "${{ job.services.postgres.id }}" --format '{{.Image}}' | tee evidence/postgres-container-image.log
+      - name: Execute exact regression, SQL and offline HTTP manifests
+        run: bash b23r6a/run_combined.sh
+      - name: Hash evidence files
+        if: always()
+        run: |
+          mkdir -p evidence
+          find evidence -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 -r sha256sum > evidence/SHA256SUMS
+      - name: Upload downloadable evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r6a-security-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 30

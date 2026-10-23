@@ -46,6 +46,7 @@ jobs:
         run: |
           unset PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE PGOPTIONS
           python3 pilot0d1/diagnose_frozen.py | tee evidence/pilot0d1r-frozen-diagnostic.log
+          python3 pilot0d1/reaping-cause.py | tee evidence/pilot0d1r-reaping-cause.log
       - name: Hash evidence
         if: always()
         run: |

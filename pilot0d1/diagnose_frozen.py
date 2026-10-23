@@ -13,6 +13,7 @@ import threading
 import time
 import unittest
 import multiprocessing.process
+import multiprocessing.popen_fork
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,9 +39,15 @@ def main():
             from bootstrap import WorkerSupervisor
             original_run, original_read = WorkerSupervisor.run, Harness.read
             process_methods={name:getattr(multiprocessing.process.BaseProcess,name) for name in ('join','is_alive','terminate','kill')}
+            original_waitpid=os.waitpid
+            original_poll=multiprocessing.popen_fork.Popen.poll
             events = []
             event_lock = threading.Lock()
             origin = time.monotonic()
+            labels={}
+            def label(pid):
+                with event_lock:
+                    return labels.setdefault(pid,'child-'+str(len(labels)+1))
             def record(row):
                 with event_lock: events.append(row)
             def process_observer(name,original):
@@ -55,10 +62,26 @@ def main():
                     finally:
                         popen=self._popen
                         record({'event':'process','method':name,'thread':threading.current_thread().name,
+                            'child':label(getattr(popen,'pid',None)),
                             'start_ms':round((start-origin)*1000,3),'duration_ms':round((time.monotonic()-start)*1000,3),
                             'returncode_cached':getattr(popen,'returncode',None),
                             'alive':value if name=='is_alive' else None,'error':error})
                 return observed
+            def observed_waitpid(pid,flags):
+                try:
+                    result=original_waitpid(pid,flags)
+                except OSError as error:
+                    record({'event':'waitpid','child':label(pid),'thread':threading.current_thread().name,'errno':error.errno})
+                    raise
+                if result[0]:
+                    record({'event':'waitpid','child':label(pid),'thread':threading.current_thread().name,'reaped':True,'exit_code':os.waitstatus_to_exitcode(result[1])})
+                return result
+            # Diagnostic counterfactual only. This never changes the historical file or acceptance runner.
+            poll_locks={}
+            def serialized_poll(self,*args,**kwargs):
+                with event_lock:
+                    lock=poll_locks.setdefault(self,threading.RLock())
+                with lock:return original_poll(self,*args,**kwargs)
             def measured_run(self,adapter,method,args,deadline,stage_limit=.4):
                 start = time.monotonic()
                 status = 'RETURNED'
@@ -92,16 +115,19 @@ def main():
                     'duration_ms':round((time.monotonic()-start)*1000,3),
                     'deadline_ms':self.deadline*1000,'active_after':len(self.workers.active)})
                 return decision
-            for mode in ('plain','observed'):
+            for mode in ('plain','observed','serialized_poll_control'):
                 for iteration in range(8):
                     events.clear()
                     suite=unittest.defaultTestLoader.loadTestsFromName(NAME)
                     with contextlib.ExitStack() as stack:
-                        if mode=='observed':
+                        if mode in ('observed','serialized_poll_control'):
                             stack.enter_context(patch.object(WorkerSupervisor,'run',measured_run))
                             stack.enter_context(patch.object(Harness,'read',measured_read))
                             for name,original in process_methods.items():
                                 stack.enter_context(patch.object(multiprocessing.process.BaseProcess,name,process_observer(name,original)))
+                            stack.enter_context(patch.object(os,'waitpid',observed_waitpid))
+                        if mode=='serialized_poll_control':
+                            stack.enter_context(patch.object(multiprocessing.popen_fork.Popen,'poll',serialized_poll))
                         capture=io.StringIO()
                         result=unittest.TextTestRunner(stream=capture,verbosity=0).run(suite)
                     row={'mode':mode,'iteration':iteration,'test':NAME,

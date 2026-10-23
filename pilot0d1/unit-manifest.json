@@ -14,5 +14,6 @@
   "transport.duplicate_json_keys_rejected",
   "transport.escaped_json_keys_rejected",
   "transport.nested_consent_string_preserved",
-  "transport.no_real_wallet_fixture_by_default"
+  "transport.no_real_wallet_fixture_by_default",
+  "transport.timed_out_waiter_never_bypasses_owner"
 ]

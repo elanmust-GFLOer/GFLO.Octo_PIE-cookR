@@ -40,8 +40,8 @@ function makeApplication({disposable=false,wallets=[],wall=()=>Date.now()/1000,m
   catch(error){release();throw error;}
  }
  async function handle(req,res){
-  const deadline=mono()+1000,abort=new AbortController();let release=null,slot=false,actor='unknown',requestId='unknown';const traceId=randomUUID();
-  secure(res);const deny=(reason,status=403)=>{try{sink.approve({traceId,requestId,principal:actor,code:'TRANSPORT_DENIED:'+reason});}catch{}if(!res.headersSent&&!res.destroyed)res.writeHead(status,{'Content-Type':'application/json'}).end(JSON.stringify({kind:'DENIED',reason}));else res.destroy();};
+  const deadline=mono()+1000,abort=new AbortController();let release=null,slot=false,actor='unknown',requestId='unknown',terminal=false;let traceId=randomUUID();
+  secure(res);const deny=(reason,status=403)=>{if(terminal)return;terminal=true;try{sink.approve({traceId,requestId,principal:actor,code:'TRANSPORT_DENIED:'+reason});}catch{}if(!res.headersSent&&!res.destroyed)res.writeHead(status,{'Content-Type':'application/json'}).end(JSON.stringify({kind:'DENIED',reason,traceId}));else res.destroy();};
   const check=()=>{if(abort.signal.aborted||!Number.isFinite(mono())||mono()>=deadline)throw Error('AUTHORIZATION_EXPIRED');};
   const timer=setTimeout(()=>{abort.abort();deny('AUTHORIZATION_EXPIRED',503);},1000);timer.unref();
   req.on('aborted',()=>abort.abort());res.on('close',()=>{if(!res.writableFinished)abort.abort();});
@@ -73,7 +73,7 @@ function makeApplication({disposable=false,wallets=[],wall=()=>Date.now()/1000,m
     requestId=body.requestId;const raw=JSON.stringify(challenge);check();sink.approve({traceId,requestId,principal:actor,code:'CHALLENGE_RELEASE_APPROVAL'});const final=observe(credential.handle);check();if(final.generation!==initial.generation)throw Error('GENERATION_STALE');res.writeHead(200,{'Content-Type':'application/json'}).end(raw);return;
    }
    shape(body,['challengeId','message','siweSignature','consent','consentSignature']);
-   const result=await proof.verify(credential.handle,body,{deadline,signal:abort.signal});check();
+   const result=await proof.verify(credential.handle,body,{deadline,signal:abort.signal});traceId=result.traceId;check();
    if(result.kind!=='OFFLINE_READ_ONLY_OBSERVATION'){deny(result.reason);return;}
    if(deliveryGate)await bounded(deliveryGate.wait(),deadline,abort.signal,mono);check();
    // Read-only synthetic data, selected exclusively by the verified server principal.
@@ -95,7 +95,7 @@ function makeApplication({disposable=false,wallets=[],wall=()=>Date.now()/1000,m
  return {server,listen:()=>new Promise((resolve,reject)=>{server.once('error',reject);server.listen(PORT,'127.0.0.1',resolve);}),
   close:async()=>{for(const socket of sockets)socket.destroy();if(server.listening)await new Promise(resolve=>server.close(resolve));},
   fixture:Object.freeze({authority,fence,audit,handles,credentials:name=>credentials[name],proof,source:sources[0].reference,legacy:sources[1].reference,
-   stats:()=>({active,sockets:sockets.size,locks:locks.size,protectedHandoffs})})};
+   serialFence:acquire,stats:()=>({active,sockets:sockets.size,locks:locks.size,protectedHandoffs})})};
 }
 function bounded(promise,deadline,signal,mono){return new Promise((resolve,reject)=>{
  let ended=false;const finish=(fn,v)=>{if(ended)return;ended=true;clearTimeout(timer);signal.removeEventListener('abort',abort);fn(v);};

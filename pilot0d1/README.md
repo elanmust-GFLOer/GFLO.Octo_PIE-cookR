@@ -23,8 +23,8 @@ recovery, binding activation or debug-control HTTP endpoint.
 
 The test controller provisions A/B sessions out of band and attaches a page-scoped
 fixture bridge. Server capabilities go only to browser memory, never storage or
-URLs. Ephemeral wallet keys stay in **test-controller Node signing closures**;
-the browser and proof server receive only public addresses/signing payloads/
+URLs. Ephemeral wallet keys stay in ****separate, bounded signer-worker process****;
+the browser, test-controller and proof server receive only public addresses/signing payloads/
 signatures. `fixtures.cjs` is never imported by the server or served as a frontend
 asset. A real injected wallet is not discovered or called. Actual extension-wallet
 interaction requires the separate 0D-2 gate below.
@@ -50,7 +50,9 @@ signatures must verify. SIWE and consent use separate explicit buttons and separ
 confirmation prompts. The exact message, readable consent, scope and typed fields
 are visible before signing. The sole scope is `id-entity.proof.read`; there is no
 binding, recovery, XP or protocol privilege. Wallet/chain changes cancel pending
-fetches and invalidate signatures/results; version checks discard late responses.
+fetches and invalidate signatures/results; version checks discard late responses. Checkbox withdrawal and declined re-signing
+clear prior signatures; expired observations are removed from the UI. This local
+withdrawal is not a persistent backend consent-revocation service.
 
 Per-principal transport serialization, single-use challenge consumption and final
 authority/generation/consent checks operate in one Node event loop. Release checks
@@ -100,24 +102,33 @@ It adds no consumer of XP or protocol privileges.
 
 ## Reproduction and evidence
 
-Local CPU-only tests: `node pilot0d1/unit-tests.cjs` (16 named cases).
+Local CPU-only tests: `node pilot0d1/unit-tests.cjs` (17 named cases).
 Inherited crypto: `node pilot0c/tests.cjs` (96 unchanged cases).
 Install test tooling: `npm ci --prefix pilot0d1 --ignore-scripts --omit=optional`.
 Type check: `pilot0d1/node_modules/.bin/tsc -p pilot0d1/tsconfig.json`.
 Browser/HTTP: `node pilot0d1/browser-tests.cjs` in the pinned disposable image.
-The current browser manifest has **41** exact cases. Full acceptance is
-**303 inherited + 16 unit + 41 browser/HTTP = 360**, plus unchanged SQL gates and
+The current browser manifest has **45** exact cases. Full acceptance is
+**303 inherited + 17 unit + 45 browser/HTTP = 365**, plus unchanged SQL gates and
 strict type checks. No skip or weakened assertion is accepted.
 
 The combined CI uses separate inherited-PostgreSQL and browser jobs. The former
 creates distinct fresh localhost databases. Browser tests run in a digest-pinned,
 read-only, cap-dropped Docker container with **network:none**, private loopback,
 resource limits, temporary browser state and an evidence-only writable mount.
-No PG/production credential is passed to it. npm SRI pins are independently
+No PG/production credential is passed to it. Signer RPCs have bounded deadlines;
+timeout retires, terminates and reaps the key worker before returning an error.
+There is no private-key export command and no worker reuse after timeout. npm SRI pins are independently
 compared with registry metadata before script-free installation; package versions,
 Chromium revision/version and image RepoDigests are checked/recorded. See
 `dependencies.json` for seed references and exact pins. No browser binary or
 platform hermetic-rebuild claim is made beyond the immutable image boundary.
+
+For an optional **manual synthetic** UI demo on an authorized local display, run
+`GFLO_DISPOSABLE_LOCALHOST=YES node pilot0d1/demo.cjs` after installing the pinned
+tools/browser. It launches a fresh browser without extensions, a separate
+ephemeral key worker, and the fixture-only session bridge. It performs no clicks
+or automatic signing; close the browser to destroy the fixture. This is not a
+real-wallet acceptance test.
 
 Artifacts contain named ledgers, provenance, type-check results, logs, hashes and
 two synthetic UX screenshots. These are automated, genuinely rendered Chromium
@@ -144,6 +155,6 @@ seed; the extension keeps it. First inspect personal_sign bytes and EIP-712 doma
 principal/profile/source/scope/expiry and verify there are **no transaction or
 approval RPCs**. Repeat cancellation, switching, origin/chain, A/B, expiration,
 revocation, replay, CSP/storage and final-release tests. Require independent review
-of this DRAFT package, all 360 regressions/SQL/type gates, redacted evidence and
+of this DRAFT package, all 365 regressions/SQL/type gates, redacted evidence and
 a documented teardown. No funded wallet, production account, deployment, binding
 activation, migration, merge or automatic continuation is authorized here.

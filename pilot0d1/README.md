@@ -1,7 +1,8 @@
 # Pilot 0D-1 — Localhost Identity Explorer
 
 Starting anchor: `44d077f4f0d8a0a978fb18ad18190ee361cc9608`, draft PR #17.
-This is a separate synthetic frontend and loopback transport. The published
+This is a separate synthetic frontend and loopback transport. The Hungarian
+architecture, evidence and residual-gate review is in [SECURITY-REVIEW.hu.md](SECURITY-REVIEW.hu.md). The published
 OctoGFLO/Lovable project is unchanged. Production wallet-binding remains BLOCKED.
 
 ## Architecture and authority
@@ -37,7 +38,7 @@ or production credential input is provided or requested.
 
 ## Cryptographic and state boundaries
 
-Pilot 0C gains two explicitly reviewed extensions: a branded, fixed localhost
+Pilot 0C gains a branded, fixed localhost
 realm (domain/URI/project/typed-consent salt), and an optional server-supplied
 deadline/AbortSignal which can only shorten its original one-second budget.
 A trusted synchronous, one-shot handoff checks the exact in-memory proof result
@@ -114,6 +115,12 @@ Browser/HTTP: `node pilot0d1/browser-tests.cjs` in the pinned disposable image.
 The current browser manifest has **50** exact cases. Full acceptance is
 **303 inherited + 22 unit + 50 browser/HTTP = 375**, plus unchanged SQL gates and
 strict type checks. No skip or weakened assertion is accepted.
+
+`GFLO_DISPOSABLE_LOCALHOST=YES python3 pilot0d1/frozen-diagnostics.py` separately
+observes three predetermined executions of the unchanged frozen concurrency case.
+It preserves source fingerprints, assertions and deadlines and records no args,
+tokens or payloads. These are diagnostic repetitions, not extra unique tests or
+a substitute for the 59-case inherited gate. Any failure remains a failure.
 
 The combined CI uses separate inherited-PostgreSQL and browser jobs. The former
 creates distinct fresh localhost databases. Browser tests run in a digest-pinned,

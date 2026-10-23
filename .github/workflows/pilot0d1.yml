@@ -44,6 +44,11 @@ jobs:
           bash pilot0c/run_combined.sh
           unset PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE PGOPTIONS
           node pilot0d1/unit-tests.cjs | tee evidence/pilot0d1-unit.log
+      - name: Preserve independent frozen concurrency observations
+        if: always()
+        run: |
+          unset PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE PGOPTIONS
+          GFLO_DISPOSABLE_LOCALHOST=YES python3 pilot0d1/frozen-diagnostics.py | tee evidence/pilot0d1-frozen-diagnostics.log
       - name: Hash evidence
         if: always()
         run: |

@@ -1,5 +1,6 @@
 // @ts-check
 import {WalletAdapter} from './wallet.mjs';
+import {validateChallenge} from './policy.mjs';
 const ORIGIN='http://127.0.0.1:43817';
 /** @typedef {import('../contracts.js').FixtureBridge} FixtureBridge */
 /** @type {FixtureBridge|undefined} */
@@ -32,7 +33,7 @@ else show('status','Synthetic fixture not attached. Real wallet interaction is d
 el('connect').addEventListener('click',()=>run(async()=>{if(!adapter)throw Error('FIXTURE_NOT_ATTACHED');address=await adapter.connect();show('wallet',address+' — DISCOVERED, NOT VERIFIED');show('status','Address discovery is not proof of wallet control.');}));
 el('challenge').addEventListener('click',()=>run(async()=>{const current=version;challenge=null;siweSignature='';consentSignature='';if(expiration!==null)clearTimeout(expiration);show('result','');show('siwe-message','');show('typed-consent','');show('consent-text','');show('wallet',address+' — DISCOVERED, NOT VERIFIED');/** @type {HTMLInputElement} */(el('agree')).checked=false;
  const value=await api('/api/challenges',{wallet:address,chainId:11155111,requestId:crypto.randomUUID(),source:/** @type {HTMLSelectElement} */(el('source')).value});
- if(current!==version)throw Error('WALLET_CHANGED');challenge=value;show('siwe-message',value.message);show('consent-text',value.consentText);show('typed-consent',JSON.stringify({domain:value.consentDomain,types:value.consentTypes,message:value.consent},null,2));show('status','Read the SIWE message and the separate consent before signing.');}));
+ if(current!==version)throw Error('WALLET_CHANGED');validateChallenge(value,address,/** @type {HTMLSelectElement} */(el('source')).value);challenge=value;show('siwe-message',value.message);show('consent-text',value.consentText);show('typed-consent',JSON.stringify({domain:value.consentDomain,types:value.consentTypes,message:value.consent},null,2));show('status','Read the SIWE message and the separate consent before signing.');}));
 el('siwe').addEventListener('click',()=>run(async()=>{if(!adapter||!challenge)throw Error('CHALLENGE_REQUIRED');const current=version;siweSignature='';consentSignature='';show('result','');const signature=await adapter.signSiwe(challenge.message,address);if(current!==version)throw Error('WALLET_CHANGED');siweSignature=signature;show('status','SIWE signed. Separate consent is still required.');}));
 el('agree').addEventListener('change',()=>{if(!/** @type {HTMLInputElement} */(el('agree')).checked){version++;pending?.abort();consentSignature='';show('result','');show('status','Consent withdrawn locally. A fresh consent signature is required.');}controls();});
 el('source').addEventListener('change',clear);

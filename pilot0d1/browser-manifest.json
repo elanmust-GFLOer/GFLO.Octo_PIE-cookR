@@ -18,6 +18,8 @@
   "browser.server_consent_revocation_denies_release",
   "browser.signer_key_process_is_separate",
   "browser.siwe_does_not_imply_consent",
+  "browser.unsafe_contract_domain_never_signed",
+  "browser.unsafe_scope_never_reaches_signer",
   "browser.valid_explicit_two_signature_flow",
   "browser.wallet_denies_typed_consent",
   "browser.wallet_switch_clears_signatures",

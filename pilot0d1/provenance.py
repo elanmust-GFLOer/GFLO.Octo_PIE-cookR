@@ -21,8 +21,15 @@ def verify_source():
     for file in (ROOT/'.github/workflows').glob('*.yml'):
         text=file.read_text();assert all(re.fullmatch('[0-9a-f]{40}',x) for x in re.findall(r'uses: [^@\s]+@([^\s]+)',text))
     client='\n'.join(p.read_text() for p in (ROOT/'pilot0d1/frontend').glob('*.mjs'))
-    for forbidden in ('localStorage','sessionStorage','window.ethereum','innerHTML','eval(','node:','pilot0c/'):
+    for forbidden in ('localStorage','sessionStorage','window.ethereum','innerHTML','eval(','node:','require('):
         assert forbidden not in client,'client boundary violation: '+forbidden
+    # Check import paths, not consent-version data (the inherited version is pilot0c/1).
+    expected={'app.mjs':['./wallet.mjs','./policy.mjs'],'wallet.mjs':[],'policy.mjs':[]}
+    for path in (ROOT/'pilot0d1/frontend').glob('*.mjs'):
+        source=path.read_text()
+        imports=re.findall(r"^import\s+.+?\s+from\s+['\"]([^'\"]+)['\"]",source,re.M)
+        assert path.name in expected and imports==expected[path.name],'unexpected client imports: '+path.name
+        assert not re.search(r"(?:from\s*|import\s*\()\s*['\"][^'\"]*pilot0c/",source),'server verifier import in client'
     server=(ROOT/'pilot0d1/server.cjs').read_text();assert "require('./fixtures.cjs')" not in server
     assert "'127.0.0.1'" in server and '43817' in server
 def main():

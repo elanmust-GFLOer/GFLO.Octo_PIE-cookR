@@ -29,7 +29,7 @@ signatures. `fixtures.cjs` is never imported by the server or served as a fronte
 asset. A real injected wallet is not discovered or called. Actual extension-wallet
 interaction requires the separate 0D-2 gate below.
 
-Only static `/`, `/app.mjs`, `/wallet.mjs`, `/style.css`, public `/healthz` and
+Only static `/`, `/app.mjs`, `/wallet.mjs`, `/policy.mjs`, `/style.css`, public `/healthz` and
 protected POST `/api/challenges`, `/api/verify` exist. Static assets reveal no
 identity or credentials. The CLI starts without fixture wallet/session enrollment;
 it can show the disabled UI, not enable a real wallet. No private key, seed phrase
@@ -48,7 +48,8 @@ unchanged. Only `pilot0c/proof.cjs` and its declaration file are extended.
 Address discovery is labeled DISCOVERED, NOT VERIFIED. Both actual secp256k1 EOA
 signatures must verify. SIWE and consent use separate explicit buttons and separate
 confirmation prompts. The exact message, readable consent, scope and typed fields
-are visible before signing. The sole scope is `id-entity.proof.read`; there is no
+are visible before signing. A fixed frontend signing policy rejects altered scopes,
+contract domains, schemas or origin/identity contexts **before any signing RPC**. The sole scope is `id-entity.proof.read`; there is no
 binding, recovery, XP or protocol privilege. Wallet/chain changes cancel pending
 fetches and invalidate signatures/results; version checks discard late responses. Checkbox withdrawal and declined re-signing
 clear prior signatures; expired observations are removed from the UI. This local
@@ -90,7 +91,7 @@ material is stored in localStorage/sessionStorage, a URL or browser traces/HAR.
 Audit events use allowlisted reasons, trace/request IDs and per-instance HMAC
 pseudonyms, never bodies, signatures, capabilities, wallet addresses or keys.
 
-Client code imports only its EIP-1193 adapter. Server code imports only the
+Client code imports only its EIP-1193 adapter and fixed public signing policy. Server code imports only the
 cryptographic verifier, never the test signer. `contracts.d.ts`, the Pilot 0C
 declarations and negative type assertions are compiled with strict TypeScript
 5.9.3, including checkJs. The OctoGFLO interface reference is the frozen
@@ -102,13 +103,13 @@ It adds no consumer of XP or protocol privileges.
 
 ## Reproduction and evidence
 
-Local CPU-only tests: `node pilot0d1/unit-tests.cjs` (17 named cases).
+Local CPU-only tests: `node pilot0d1/unit-tests.cjs` (18 named cases).
 Inherited crypto: `node pilot0c/tests.cjs` (96 unchanged cases).
 Install test tooling: `npm ci --prefix pilot0d1 --ignore-scripts --omit=optional`.
 Type check: `pilot0d1/node_modules/.bin/tsc -p pilot0d1/tsconfig.json`.
 Browser/HTTP: `node pilot0d1/browser-tests.cjs` in the pinned disposable image.
-The current browser manifest has **45** exact cases. Full acceptance is
-**303 inherited + 17 unit + 45 browser/HTTP = 365**, plus unchanged SQL gates and
+The current browser manifest has **47** exact cases. Full acceptance is
+**303 inherited + 18 unit + 47 browser/HTTP = 368**, plus unchanged SQL gates and
 strict type checks. No skip or weakened assertion is accepted.
 
 The combined CI uses separate inherited-PostgreSQL and browser jobs. The former
@@ -155,6 +156,6 @@ seed; the extension keeps it. First inspect personal_sign bytes and EIP-712 doma
 principal/profile/source/scope/expiry and verify there are **no transaction or
 approval RPCs**. Repeat cancellation, switching, origin/chain, A/B, expiration,
 revocation, replay, CSP/storage and final-release tests. Require independent review
-of this DRAFT package, all 365 regressions/SQL/type gates, redacted evidence and
+of this DRAFT package, all 368 regressions/SQL/type gates, redacted evidence and
 a documented teardown. No funded wallet, production account, deployment, binding
 activation, migration, merge or automatic continuation is authorized here.

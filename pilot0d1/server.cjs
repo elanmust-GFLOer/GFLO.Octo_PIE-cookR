@@ -7,7 +7,7 @@ const ORIGIN=p.LOCAL_ORIGIN,HOST='127.0.0.1:43817',PORT=43817;
 const A='11111111-1111-4111-8111-111111111111',B='22222222-2222-4222-8222-222222222222';
 const PA='33333333-3333-4333-8333-333333333333',PB='44444444-4444-4444-8444-444444444444';
 const CSP="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'; require-trusted-types-for 'script'; trusted-types 'none'";
-const STATIC=new Map([['/',['index.html','text/html']],['/app.mjs',['app.mjs','text/javascript']],['/wallet.mjs',['wallet.mjs','text/javascript']],['/style.css',['style.css','text/css']]]);
+const STATIC=new Map([['/',['index.html','text/html']],['/app.mjs',['app.mjs','text/javascript']],['/wallet.mjs',['wallet.mjs','text/javascript']],['/policy.mjs',['policy.mjs','text/javascript']],['/style.css',['style.css','text/css']]]);
 function secure(res){for(const [k,v] of Object.entries({'Content-Security-Policy':CSP,'X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Referrer-Policy':'no-referrer','Cache-Control':'no-store','Cross-Origin-Opener-Policy':'same-origin','Cross-Origin-Resource-Policy':'same-origin','Permissions-Policy':'camera=(), microphone=(), geolocation=(), payment=(), usb=()','Connection':'close'}))res.setHeader(k,v);}
 function strictJson(raw){
  // Only the flat transport schemas are accepted; duplicate/escaped keys deny.

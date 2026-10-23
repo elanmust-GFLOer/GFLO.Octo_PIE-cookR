@@ -1,6 +1,7 @@
 [
+  "boundary.client_signing_policy_matches_crypto_core",
   "boundary.fixture_signer_not_server_import",
-  "boundary.frontend_imports_only_wallet_adapter",
+  "boundary.frontend_imports_only_local_modules",
   "browser.csp_no_inline_or_external_script",
   "deadline.abort_between_crypto_and_consume",
   "deadline.aborted_request_cannot_consume",

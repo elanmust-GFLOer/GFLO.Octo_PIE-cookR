@@ -1,0 +1,99 @@
+name: Worker lifecycle closure and preserved historical oracle
+on:
+  push:
+    branches: ['feature/worker-lifecycle-closure']
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+jobs:
+  complete:
+    strategy:
+      fail-fast: false
+      matrix:
+        cohort: [1, 2, 3]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16@sha256:9e2cf6287f25c3151f4c9421ccce2b17f3e60061c111a29165e0d2cdd9ff0a97
+        env: {POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: postgres}
+        ports: ['127.0.0.1:5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      B22_DISPOSABLE_ACK: 'YES'
+      B23_DISPOSABLE_ACK: 'YES'
+      R6A_DISPOSABLE_ACK: 'YES'
+      WORKER_COHORT: '${{ matrix.cohort }}'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {fetch-depth: 0, persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22.14.0', check-latest: false}
+      - name: Install inherited hash-locked development wheels
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --require-hashes --only-binary=:all: -r b23r6a/requirements.lock
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Verify narrow patch and frozen source boundaries
+        run: python3 workerclosure/provenance.py
+      - name: Execute every original suite and new lifecycle controls independently
+        run: python3 workerclosure/run_complete.py
+      - name: Hash all retained evidence
+        if: always()
+        run: |
+          mkdir -p evidence
+          find evidence -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 -r sha256sum > evidence/SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: 'workerclosure-cohort-${{ matrix.cohort }}-${{ github.run_id }}'
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 30
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {fetch-depth: 0, persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22.14.0', check-latest: false}
+      - name: Verify narrow patch and dependencies
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --require-hashes --only-binary=:all: -r b23r6a/requirements.lock
+          .venv/bin/python workerclosure/provenance.py
+      - name: Verify registry integrity and install script-free locked dependencies
+        run: |
+          node pilot0d1/check-dependencies.cjs --registry
+          npm ci --prefix pilot0d1 --ignore-scripts --omit=optional --no-audit --no-fund
+          node pilot0d1/check-dependencies.cjs --installed
+      - name: Verify TypeScript and client/server contracts
+        run: |
+          pilot0d1/node_modules/.bin/tsc -p pilot0d1/tsconfig.json
+          printf '%s\n' 'PILOT_0D1 TYPES PASS' | tee evidence/typecheck.log
+      - name: Pull immutable browser image
+        run: |
+          docker pull mcr.microsoft.com/playwright:v1.56.1-noble@sha256:f1e7e01021efd65dd1a2c56064be399f3e4de00fd021ac561325f2bfbb2b837a
+          docker image inspect mcr.microsoft.com/playwright:v1.56.1-noble@sha256:f1e7e01021efd65dd1a2c56064be399f3e4de00fd021ac561325f2bfbb2b837a --format '{{json .RepoDigests}}' > evidence/browser-image.json
+      - name: Execute synthetic browser/localhost integration with no external network
+        run: |
+          docker run --rm --name gflo-pilot0d1-browser --network none --read-only --user "$(id -u):$(id -g)" --cap-drop ALL --security-opt no-new-privileges --memory 2g --cpus 2 --pids-limit 256 --tmpfs /tmp:rw,nosuid,nodev,size=512m -v "$PWD:/work:ro" -v "$PWD/evidence:/out:rw" -e GFLO_EVIDENCE_DIR=/out -e XDG_CACHE_HOME=/tmp/.cache -e XDG_CONFIG_HOME=/tmp/.config -w /work mcr.microsoft.com/playwright:v1.56.1-noble@sha256:f1e7e01021efd65dd1a2c56064be399f3e4de00fd021ac561325f2bfbb2b837a node pilot0d1/browser-tests.cjs | tee evidence/pilot0d1-browser.log
+      - name: Remove isolated browser container
+        if: always()
+        run: docker rm -f gflo-pilot0d1-browser 2>/dev/null || true
+      - name: Hash browser evidence
+        if: always()
+        run: |
+          mkdir -p evidence
+          find evidence -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 -r sha256sum > evidence/SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with: {name: 'workerclosure-browser-${{ github.run_id }}', path: evidence/, if-no-files-found: error, retention-days: 30}

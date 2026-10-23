@@ -8,6 +8,7 @@ import os
 import pickle
 import time
 from .contracts import Rejected, Unavailable, ExpiredDeadline
+from .process_lifecycle import OwnedSpawnContext
 
 def _invoke(pipe, adapter, method, args):
     try:
@@ -29,7 +30,7 @@ def _invoke(pipe, adapter, method, args):
 
 class WorkerSupervisor:
     def __init__(self):
-        self.context = multiprocessing.get_context("spawn")
+        self.context = OwnedSpawnContext()
         self.active = set()
         self.failed = False
         import threading
@@ -65,24 +66,31 @@ class WorkerSupervisor:
             if status != "ok":
                 raise RuntimeError("adapter failed")
         finally:
-            if started:
-                # Even a worker which returned a result is stopped: it cannot
-                # continue executing code after its result has been accepted.
-                if process.is_alive():
-                    process.terminate()
-                process.join(.1)
-                if process.is_alive():
-                    process.kill()
-                    process.join(.1)
-                if process.is_alive():
-                    # Never return ALLOW or release this PID's accounting.
-                    self.failed = True
-                    raise RuntimeError("adapter process could not be reaped")
-                with self.lock:
-                    self.active.discard(process.pid)
-                process.close()
-            sender.close()
-            receiver.close()
+            try:
+                if started:
+                    try:
+                        # Both this owner and stdlib global cleanup use the
+                        # child's atomic, nonblocking waitpid/cache operation.
+                        if process.is_alive():
+                            process.terminate()
+                        process.join(.1)
+                        if process.is_alive():
+                            process.kill()
+                            process.join(.1)
+                        if process.is_alive():
+                            raise RuntimeError("adapter process could not be reaped")
+                        pid = process.pid
+                        process.close()
+                        # Close failure retains accounting and poisons admission.
+                        with self.lock:
+                            self.active.discard(pid)
+                    except BaseException:
+                        with self.lock:
+                            self.failed = True
+                        raise
+            finally:
+                sender.close()
+                receiver.close()
         # Startup, decoding AND cleanup are charged; no stale result escapes.
         if time.monotonic()>=stage_end:raise ExpiredDeadline()
         return value

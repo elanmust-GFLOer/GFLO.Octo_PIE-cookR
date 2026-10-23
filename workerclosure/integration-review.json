@@ -1,0 +1,1085 @@
+[
+  {
+    "number": 8,
+    "title": "test(b22): isolated PostgreSQL 16 wallet-binding invariants",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "base": "05ecb3bbcc9696e0847e7daa3da2a0aeafbe5cbb",
+    "base_ref": "main",
+    "head": "0f3b5788d59ae56d99c17d25b181eefb9f7bd5ba",
+    "head_ref": "feature/b22-postgres-isolated",
+    "changed_files": [
+      {
+        "path": ".github/workflows/b22-postgres.yml",
+        "status": "added",
+        "sha": "08e655d3e3eab16ecd8bbd1f8b871eee9fe0afc8"
+      },
+      {
+        "path": "b22/sql/001_backend2_schema_DRAFT.sql",
+        "status": "added",
+        "sha": "16d3709f95f452f27d441af183f423c0473bbef4"
+      },
+      {
+        "path": "b22/tests/01_schema_invariants.sql",
+        "status": "added",
+        "sha": "07f505a1276de06676421c442b1daf2177f4f107"
+      },
+      {
+        "path": "b22/tests/02_pg_races.py",
+        "status": "added",
+        "sha": "9e078d9a885a261c206f34fa3389b6d5f404d391"
+      },
+      {
+        "path": "b22/tests/run_disposable_pg.sh",
+        "status": "added",
+        "sha": "1944a92b037eb9180525f9347fce04dc57b2e0b9"
+      },
+      {
+        "path": "docs/B22-STATUS.md",
+        "status": "added",
+        "sha": "f7f6013f6fc93151fac08e8f17f1e40580913220"
+      }
+    ]
+  },
+  {
+    "number": 9,
+    "title": "security(b23): simulated Auth session lock and audited suspension gate",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "base": "0f3b5788d59ae56d99c17d25b181eefb9f7bd5ba",
+    "base_ref": "feature/b22-postgres-isolated",
+    "head": "16282d6cfc0bf21d061696db43a5abdf1adac5e5",
+    "head_ref": "feature/b23-auth-audit-gate",
+    "changed_files": [
+      {
+        "path": ".github/workflows/b23-postgres.yml",
+        "status": "added",
+        "sha": "e56270cf368e8bdd48912002d2ce2ef1964b6734"
+      },
+      {
+        "path": "b23/README.md",
+        "status": "added",
+        "sha": "6b7d1f363979b1b408526179fd610bc8d12fbc5d"
+      },
+      {
+        "path": "b23/docs/CODEX_REVIEW.md",
+        "status": "added",
+        "sha": "a3db432f386f90beb0de624e098bc5e846d7f411"
+      },
+      {
+        "path": "b23/sql/002_b23_auth_audit.sql",
+        "status": "added",
+        "sha": "060fffecbbca3a80b207c459d7cc1689f55323bd"
+      },
+      {
+        "path": "b23/tests/01_auth_audit.sql",
+        "status": "added",
+        "sha": "3ea7e8cbec6c6323d2986023914eb4f237b3e9eb"
+      },
+      {
+        "path": "b23/tests/02_role_denial.sql",
+        "status": "added",
+        "sha": "2ea0f4c331d7500c8ce472321d4269c30eafeabd"
+      },
+      {
+        "path": "b23/tests/run_disposable_pg.sh",
+        "status": "added",
+        "sha": "867648cde2b67501933759f7a61cd88f599ea294"
+      }
+    ]
+  },
+  {
+    "number": 10,
+    "title": "security(b23r1): deny runtime access and fail closed on inconsistent suspension",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "base": "16282d6cfc0bf21d061696db43a5abdf1adac5e5",
+    "base_ref": "feature/b23-auth-audit-gate",
+    "head": "f451f9419cdd7cddc7ac0cda9e74426b0090d10d",
+    "head_ref": "feature/b23r1-role-audit-challenge",
+    "changed_files": [
+      {
+        "path": ".github/workflows/b23r1-postgres.yml",
+        "status": "added",
+        "sha": "b294d7fb816d963025699030ce097708fc419e23"
+      },
+      {
+        "path": "b23r1/README.md",
+        "status": "added",
+        "sha": "c7e9b9cbaeb51d1f68c49074f4b2477452210dc6"
+      },
+      {
+        "path": "b23r1/docs/CI-EVIDENCE.md",
+        "status": "added",
+        "sha": "f90b26a1690cb14aef40744d913712f8c40e7ede"
+      },
+      {
+        "path": "b23r1/sql/003_restrict_and_gate.sql",
+        "status": "added",
+        "sha": "aa353d74e1f1b72bc2af31554d37298a9fad2f86"
+      },
+      {
+        "path": "b23r1/tests/01_r1_restrictions.sql",
+        "status": "added",
+        "sha": "ea8b104517cb8341b6185d4453c8025a8e3d70d0"
+      },
+      {
+        "path": "b23r1/tests/run_disposable_pg.sh",
+        "status": "added",
+        "sha": "b44fdd9f83eb86c31db4e28181fb0b2511fd9c67"
+      }
+    ]
+  },
+  {
+    "number": 11,
+    "title": "test(b23r2): independent PostgreSQL session and challenge race probes",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "base": "f451f9419cdd7cddc7ac0cda9e74426b0090d10d",
+    "base_ref": "feature/b23r1-role-audit-challenge",
+    "head": "5b3ea69504fc3b3c542fe1b368f57aba7ac54043",
+    "head_ref": "feature/b23r2-concurrency-gate",
+    "changed_files": [
+      {
+        "path": ".github/workflows/b23r2-postgres.yml",
+        "status": "added",
+        "sha": "5bcff87907c50a05439aa43b8d1cd3eced509f02"
+      },
+      {
+        "path": "b23r2/CI-EVIDENCE.md",
+        "status": "added",
+        "sha": "46445cf0c5a7b698e5d4bdc84f9b0a986883f689"
+      },
+      {
+        "path": "b23r2/tests/01_races.py",
+        "status": "added",
+        "sha": "2c03f39fe2dd26d339c04c90f97648a103dff7ab"
+      },
+      {
+        "path": "b23r2/tests/run_disposable_pg.sh",
+        "status": "added",
+        "sha": "4ded715fbf742fedc01d6b8503ad47f43d586aba"
+      }
+    ]
+  },
+  {
+    "number": 12,
+    "title": "security(b23r3): isolated role-separated transactional audit and retry gate",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "base": "5b3ea69504fc3b3c542fe1b368f57aba7ac54043",
+    "base_ref": "feature/b23r2-concurrency-gate",
+    "head": "fb037790a9537bab3ddf094d9d2670a295bc080a",
+    "head_ref": "feature/b23r3-mandatory-audit-roles",
+    "changed_files": [
+      {
+        "path": ".github/workflows/b23r3-postgres.yml",
+        "status": "added",
+        "sha": "4147f69f3ab0b34362254920e61904d0dd57d237"
+      },
+      {
+        "path": "b23r3/CI-EVIDENCE.md",
+        "status": "added",
+        "sha": "35b8dec560bff41e2366f036dfd2ef3dd38c5f86"
+      },
+      {
+        "path": "b23r3/sql/004_role_audit_lab.sql",
+        "status": "added",
+        "sha": "e0b3e4fa19238ca4fc6b89ad5937965f6450396c"
+      },
+      {
+        "path": "b23r3/tests/00_fk_owner_diagnostic.sql",
+        "status": "added",
+        "sha": "84ee2151f53262d5cc399221e83f58ba42e41390"
+      },
+      {
+        "path": "b23r3/tests/01_role_audit.py",
+        "status": "added",
+        "sha": "1602b485c36d589028c02ec59e0beadc4dcf50fd"
+      },
+      {
+        "path": "b23r3/tests/run_disposable_pg.sh",
+        "status": "added",
+        "sha": "b67d1604bf8295c17e25e16bf0068f7d053b1631"
+      }
+    ]
+  },
+  {
+    "number": 13,
+    "title": "test(b23r4): combined B2.2\u2013R3 security regressions and lock-wait proof",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "base": "fb037790a9537bab3ddf094d9d2670a295bc080a",
+    "base_ref": "feature/b23r3-mandatory-audit-roles",
+    "head": "4903ce684c9c57da7db3bb45778033637b3b15bd",
+    "head_ref": "feature/b23r4-combined-security-gate",
+    "changed_files": [
+      {
+        "path": ".github/workflows/b23r4-combined.yml",
+        "status": "added",
+        "sha": "f15f89b16a1ff7340969f4568a3614211e757d56"
+      },
+      {
+        "path": "b23r4/CI-EVIDENCE.md",
+        "status": "added",
+        "sha": "e7110575ca1050ce4a4f4ea3489f9fe299208452"
+      },
+      {
+        "path": "b23r4/README.md",
+        "status": "added",
+        "sha": "b0fe17e2409158a4a383b4e03553ea3951453876"
+      },
+      {
+        "path": "b23r4/tests/01_deterministic_locks.py",
+        "status": "added",
+        "sha": "0e2e68f69abd02ca1a2bd783d9801d09db2c0725"
+      },
+      {
+        "path": "b23r4/tests/run_combined.sh",
+        "status": "added",
+        "sha": "2137131a5e2450078a56e53bed0062eebb5382db"
+      }
+    ]
+  },
+  {
+    "number": 14,
+    "title": "security(b23r5): quarantine lab RPC and operational role privileges",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "base": "4903ce684c9c57da7db3bb45778033637b3b15bd",
+    "base_ref": "feature/b23r4-combined-security-gate",
+    "head": "2362ce622daf896248265a03efca00d6ef72a9a7",
+    "head_ref": "feature/b23r5-operational-quarantine-gate",
+    "changed_files": [
+      {
+        "path": ".github/workflows/b23r5-combined.yml",
+        "status": "added",
+        "sha": "39f31dff0f474d7040563198d8827219434122e6"
+      },
+      {
+        "path": ".github/workflows/b23r5-quarantine.yml",
+        "status": "added",
+        "sha": "2db283a4ef9b1542294b2eadf7a1c5edb6ea6485"
+      },
+      {
+        "path": "b23r5/AUTHORITY-CONTRACT.md",
+        "status": "added",
+        "sha": "b4c9701a1b3adb449514e57b5dcb88a5e55ebbd9"
+      },
+      {
+        "path": "b23r5/CI-EVIDENCE.md",
+        "status": "added",
+        "sha": "bef9dcce5cbb9cb59a768cb9df07a736b212bd6b"
+      },
+      {
+        "path": "b23r5/COMBINED-CI-EVIDENCE.md",
+        "status": "added",
+        "sha": "83d24ceb6164194682b565180ddd709f61b683a8"
+      },
+      {
+        "path": "b23r5/README.md",
+        "status": "added",
+        "sha": "a856ccbe3f2e52081bb3bd7f6a44e1d75ecd97e8"
+      },
+      {
+        "path": "b23r5/sql/005_operational_quarantine.sql",
+        "status": "added",
+        "sha": "2c4ae477f22bb8c48636b37c341bcc4b323f9321"
+      },
+      {
+        "path": "b23r5/tests/01_role_quarantine.sql",
+        "status": "added",
+        "sha": "26071c2c9e156077f0c103d659ce6fc31abe6f0f"
+      },
+      {
+        "path": "b23r5/tests/02_operational_matrix.sql",
+        "status": "added",
+        "sha": "47b476b1d33ec5f96d5999dec59b107ba5693613"
+      },
+      {
+        "path": "b23r5/tests/03_deterministic_completion.py",
+        "status": "added",
+        "sha": "73d087d6ab4219b907de30865ac0030e9b68fb6c"
+      },
+      {
+        "path": "b23r5/tests/04_verified_suite.py",
+        "status": "added",
+        "sha": "8c00bd8a7be3c49c5e897e231ebd5f46e7134873"
+      },
+      {
+        "path": "b23r5/tests/run_combined_verified.sh",
+        "status": "added",
+        "sha": "bb50297bd0c666e9271605f65eafd4d72c948985"
+      },
+      {
+        "path": "b23r5/tests/run_quarantine.sh",
+        "status": "added",
+        "sha": "f106fa6935ab7c03a7722cb0a6e284d3df52c5eb"
+      }
+    ]
+  },
+  {
+    "number": 15,
+    "title": "B2.3-R6A: fail-closed quarantine decision gateway (isolated only)",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "base": "2362ce622daf896248265a03efca00d6ef72a9a7",
+    "base_ref": "feature/b23r5-operational-quarantine-gate",
+    "head": "12e2df4c32ef51d08c799ec63a565c90221e8bcd",
+    "head_ref": "feature/b23r6a-quarantine-decision-gateway",
+    "changed_files": [
+      {
+        "path": ".github/workflows/b22-postgres.yml",
+        "status": "modified",
+        "sha": "61a0acd36bc9549ed8924fa30ee05b903bcd051a"
+      },
+      {
+        "path": ".github/workflows/b23-postgres.yml",
+        "status": "modified",
+        "sha": "fb4b18d8a57277d0bb8eac4c723aaa4334a2b4d2"
+      },
+      {
+        "path": ".github/workflows/b23r1-postgres.yml",
+        "status": "modified",
+        "sha": "44ba495ac367ac3191887590a4b78ca04b0be889"
+      },
+      {
+        "path": ".github/workflows/b23r2-postgres.yml",
+        "status": "modified",
+        "sha": "f268912d064ec30ca221a81b3b49603bdb02012d"
+      },
+      {
+        "path": ".github/workflows/b23r3-postgres.yml",
+        "status": "modified",
+        "sha": "727349547b85eb9ead283b0d9341571998502b89"
+      },
+      {
+        "path": ".github/workflows/b23r4-combined.yml",
+        "status": "modified",
+        "sha": "6f6adbd9e4538b443d76aaa46b36079af8cf36a0"
+      },
+      {
+        "path": ".github/workflows/b23r5-combined.yml",
+        "status": "modified",
+        "sha": "292a37475261462877dbf33e37ce52302b1458cc"
+      },
+      {
+        "path": ".github/workflows/b23r5-quarantine.yml",
+        "status": "modified",
+        "sha": "403174934f2ecab4444775a4226c8c18106bcf6e"
+      },
+      {
+        "path": ".github/workflows/b23r6a-combined.yml",
+        "status": "added",
+        "sha": "51b01ea04791a2ec415b2fba03b1ba38c73b6c95"
+      },
+      {
+        "path": ".gitignore",
+        "status": "modified",
+        "sha": "70661017e59936aebede1de0b72a7e802acddb36"
+      },
+      {
+        "path": "audit-pilot/EVENT-CONTRACT.md",
+        "status": "added",
+        "sha": "d8bb67214f25beb96d0a6c732655662fa8ad8ca6"
+      },
+      {
+        "path": "audit-pilot/IDENTITY-AND-ACCESS.md",
+        "status": "added",
+        "sha": "cfb6035a463fa3b0af613311719048c8bbda68e8"
+      },
+      {
+        "path": "audit-pilot/TEST-PLAN.md",
+        "status": "added",
+        "sha": "3eea21c54bcc060563c13624169a5b3f184972c1"
+      },
+      {
+        "path": "b23r5/tests/02_operational_matrix.sql",
+        "status": "modified",
+        "sha": "0e506aa82d33c3b6fbfa1d2969ecbcf1ae655c38"
+      },
+      {
+        "path": "b23r5/tests/04_verified_suite.py",
+        "status": "modified",
+        "sha": "f2c4b3a2d771f94119387a6ac461e830b6396695"
+      },
+      {
+        "path": "b23r6a/README.md",
+        "status": "added",
+        "sha": "359987c1f55d39dbc4c5a4859142af45211150fc"
+      },
+      {
+        "path": "b23r6a/__init__.py",
+        "status": "added",
+        "sha": "aad3a63fa496e39ae6a0872a29842e2f9ee54a4e"
+      },
+      {
+        "path": "b23r6a/adapters/__init__.py",
+        "status": "added",
+        "sha": "7c4a95c75cfbe03706ec4460c21b8995bb5766ba"
+      },
+      {
+        "path": "b23r6a/adapters/offline.py",
+        "status": "added",
+        "sha": "5fc9bfb28c4f0c4b95d6e144e53211279c535dd4"
+      },
+      {
+        "path": "b23r6a/contracts.py",
+        "status": "added",
+        "sha": "917adf832fb11d53c95e6aa8f2933c7e0d9513ed"
+      },
+      {
+        "path": "b23r6a/events.py",
+        "status": "added",
+        "sha": "dafa58d50141d3648ff3d1d230e2755b2b16a1cf"
+      },
+      {
+        "path": "b23r6a/gateway.py",
+        "status": "added",
+        "sha": "1aad701d7da795e3a41a2dae78e1b96bd773c0ba"
+      },
+      {
+        "path": "b23r6a/http_server.py",
+        "status": "added",
+        "sha": "0f04c5971b1f183a80144f2b8bdf168b61d19eee"
+      },
+      {
+        "path": "b23r6a/provenance.py",
+        "status": "added",
+        "sha": "80fcd1f11aede8fba9d4012389546d7bcc200a1f"
+      },
+      {
+        "path": "b23r6a/requirements.lock",
+        "status": "added",
+        "sha": "a3a56d666b100f483e199dbc2f5c90ff5904b866"
+      },
+      {
+        "path": "b23r6a/run_combined.sh",
+        "status": "added",
+        "sha": "565b7a93776fe4a6f5b0b0079d42df23aad1d162"
+      },
+      {
+        "path": "b23r6a/run_verified.py",
+        "status": "added",
+        "sha": "fc55e7825eeee78c0757b9e05637794741736098"
+      },
+      {
+        "path": "b23r6a/test-manifest.json",
+        "status": "added",
+        "sha": "e8264e15bb4c1c9567e3718a6ff5063e19bf056b"
+      },
+      {
+        "path": "b23r6a/tests/__init__.py",
+        "status": "added",
+        "sha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "b23r6a/tests/test_gateway.py",
+        "status": "added",
+        "sha": "1a87d6b22d768d566e27cd56dc90f2e454d24e4e"
+      },
+      {
+        "path": "b23r6a/tests/test_http.py",
+        "status": "added",
+        "sha": "f1d9a861234faa74d6659c3d76da0b76383ed6c2"
+      },
+      {
+        "path": "b23r6a/tests/test_manifest.py",
+        "status": "added",
+        "sha": "e24431a3fce08c9808889b9635aa87cab7b7fe68"
+      },
+      {
+        "path": "b23r6a/workers.py",
+        "status": "added",
+        "sha": "8d0fa19fb54f1ae0aa7010256a67d01ff4121f1f"
+      }
+    ]
+  },
+  {
+    "number": 16,
+    "title": "R6A.1 + Pilot 0B: one-second authorization closure and offline source manifest",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "base": "12e2df4c32ef51d08c799ec63a565c90221e8bcd",
+    "base_ref": "feature/b23r6a-quarantine-decision-gateway",
+    "head": "e9e1c2f3ae599046ac7c16788a6b6aa1cea1534b",
+    "head_ref": "feature/b23r6a1-pilot0b-security-closure",
+    "changed_files": [
+      {
+        "path": ".github/workflows/b23r6a-combined.yml",
+        "status": "modified",
+        "sha": "e461df0a4555c86a7684f559691f69f44474dd9c"
+      },
+      {
+        "path": "b23r6a/DEADLINE-CONTRACT.md",
+        "status": "added",
+        "sha": "73ec7ee0271fb3096ac8b07a1cb9c4426a4d9767"
+      },
+      {
+        "path": "b23r6a/README.md",
+        "status": "modified",
+        "sha": "e1cb458521fcd216dfd769566fe6959dfb0ad599"
+      },
+      {
+        "path": "b23r6a/adapter_batches.py",
+        "status": "added",
+        "sha": "ab6acf682a5d9b59c9d6463a3033ac4efedd002e"
+      },
+      {
+        "path": "b23r6a/deadline.py",
+        "status": "added",
+        "sha": "a8868b60ed741581eb245e8cbfbab32f1aecf19b"
+      },
+      {
+        "path": "b23r6a/events.py",
+        "status": "modified",
+        "sha": "21af7706654d2cb2e3f6a6690996f5b94d19bce0"
+      },
+      {
+        "path": "b23r6a/frozen_pilot.py",
+        "status": "added",
+        "sha": "5fc68de361c8df6f11bb81475b4436cfffacf6fc"
+      },
+      {
+        "path": "b23r6a/gateway.py",
+        "status": "modified",
+        "sha": "b112be50fb2b509d2e67b737cd567203f5b639f0"
+      },
+      {
+        "path": "b23r6a/http_server.py",
+        "status": "modified",
+        "sha": "6af19014a7ab1759b4bb447d5cd75c78e4bf9726"
+      },
+      {
+        "path": "b23r6a/provenance.py",
+        "status": "modified",
+        "sha": "5ef1f8310d67e5e654f03ca8e2694d16cf7a375a"
+      },
+      {
+        "path": "b23r6a/run_combined.sh",
+        "status": "modified",
+        "sha": "e68f0236996fb276b537f3c698eeca97926cfb79"
+      },
+      {
+        "path": "b23r6a/run_verified.py",
+        "status": "modified",
+        "sha": "5de163f870eddcbb470485e86788ac23d4bacbf9"
+      },
+      {
+        "path": "b23r6a/test-manifest.json",
+        "status": "modified",
+        "sha": "499faa00160134aacafb06284ee8be23067969f5"
+      },
+      {
+        "path": "b23r6a/tests/test_deadlines.py",
+        "status": "added",
+        "sha": "9c410252b990c5b7ca2f16f682d6b556cb8a5497"
+      },
+      {
+        "path": "b23r6a/workers.py",
+        "status": "modified",
+        "sha": "df8ba63776c1f39180ab7ccaeecfc83c87ac0ca6"
+      },
+      {
+        "path": "pilot0a-frozen/DATA-CONTRACT.md",
+        "status": "added",
+        "sha": "e2f2009f3921eed4ca8804a4df12632d5d059aa6"
+      },
+      {
+        "path": "pilot0a-frozen/README.md",
+        "status": "added",
+        "sha": "bc959539ef94f3fa8e1443b13e026c1a4e2f2b7b"
+      },
+      {
+        "path": "pilot0a-frozen/SECURITY-REPORT.hu.md",
+        "status": "added",
+        "sha": "63c5e4dc170e3fe0c32392fd7e17382b1d02f795"
+      },
+      {
+        "path": "pilot0a-frozen/bootstrap.py",
+        "status": "added",
+        "sha": "d18270721da553d08a49ce75b5299bfb11265e71"
+      },
+      {
+        "path": "pilot0a-frozen/contracts.py",
+        "status": "added",
+        "sha": "67afe8bcb048b3d7b4bd5ce4237909ac195bbe00"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/anchors.json",
+        "status": "added",
+        "sha": "4e9683a7ba8c37b7c9927c04fcd2a45fb335bf32"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/r6a-core-local.log",
+        "status": "added",
+        "sha": "064c92e5d893edb8135666ddf28311404045b6b6"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/etherscan/abi.json",
+        "status": "added",
+        "sha": "ff37eabac22cce7048e6f9b1373b46cd1c308a57"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/etherscan/metadata.json",
+        "status": "added",
+        "sha": "18dce290d8e48978fe09cf47e483506c446de15d"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/etherscan/verified-PIECore.sol",
+        "status": "added",
+        "sha": "5e65caa9f633fab251dbb16c3dda3dc864d03e24"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/octogflo/AGENTS.md",
+        "status": "added",
+        "sha": "2b1a1b0a553619a4fbb1b14f6205fa12f2b5ad47"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/octogflo/src/domain/engine.ts",
+        "status": "added",
+        "sha": "0df2b2fcb197b6b5d64c9b5817eb6d9ea83c4d15"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/octogflo/src/domain/evidence.ts",
+        "status": "added",
+        "sha": "1a495fe23f8dffd7a209d5040291ac9b1f7a7aed"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/octogflo/src/domain/fixtures.ts",
+        "status": "added",
+        "sha": "d41e9bf13b8f9d0c555ea11a1041ce117d72204c"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/octogflo/src/domain/octopass-adapters.ts",
+        "status": "added",
+        "sha": "a4adee68e6a74b0a445adfc145dc0110548dc0ee"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/octogflo/src/domain/types.ts",
+        "status": "added",
+        "sha": "7d3ef67fc40fe084080834b30358d12101753f63"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/octogflo/src/routes/octopass.tsx",
+        "status": "added",
+        "sha": "14533e180b4f5cc45c3ce9bfe1fa28939ea19cd0"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/pie/addresses.json",
+        "status": "added",
+        "sha": "c66b2c116c86a95be05be148ac23cf57ae23d91e"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/pie/artifactABI.json",
+        "status": "added",
+        "sha": "b640e59bb5dab4dd231a57ef73fc7f7c7f7c76a7"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/pie/baseline.js",
+        "status": "added",
+        "sha": "a7acd524ae3921f499e4e30f01ed1437ff3256e3"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/pie/compiledABI.json",
+        "status": "added",
+        "sha": "9cc4bc0f10419d3a09a56521d84352dc7e4feee2"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/pie/compiledABI1.json",
+        "status": "added",
+        "sha": "b640e59bb5dab4dd231a57ef73fc7f7c7f7c76a7"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/pie/compiledABI2.json",
+        "status": "added",
+        "sha": "b640e59bb5dab4dd231a57ef73fc7f7c7f7c76a7"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/pie/deployScript.js",
+        "status": "added",
+        "sha": "c1ca179048eee50ec24244a4341dbaab69221449"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/pie/legacyEvidence.md",
+        "status": "added",
+        "sha": "454fb27c483ab9ebcc8ec5bd816045e74a486eb3"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/pie/mainContracts.sol",
+        "status": "added",
+        "sha": "5e65caa9f633fab251dbb16c3dda3dc864d03e24"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/pie/mainRoot.sol",
+        "status": "added",
+        "sha": "ab4abc60412d1339e765012e80e05a8bed9fb396"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/pie/reviewedContracts.sol",
+        "status": "added",
+        "sha": "5e65caa9f633fab251dbb16c3dda3dc864d03e24"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/pie/tierGate.sol",
+        "status": "added",
+        "sha": "e10a4ae3a907b0f059e9b57f09b7b29dbb12eac3"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/pie/v02.sol",
+        "status": "added",
+        "sha": "c4cb8a740ec3eb9971e08c50d1a39ca3d3dff7e5"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/pie/v02gates.md",
+        "status": "added",
+        "sha": "914145477af4debe11aa81a9a16826c2186c0243"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/pie/v02readme.md",
+        "status": "added",
+        "sha": "7bfc45d2fd06907197b3f17929bd07eed80ec21b"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/sources/pie/v02test.js",
+        "status": "added",
+        "sha": "f10fb53c02339c7d164d5bf0c65220f004b2891f"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/test-ledger.json",
+        "status": "added",
+        "sha": "150f684dfc647921d66a1b14028eccf29f0a9d2d"
+      },
+      {
+        "path": "pilot0a-frozen/evidence/test-run.log",
+        "status": "added",
+        "sha": "b41fb1c0b628fc40e8ddde3927ed1bdcac0b6387"
+      },
+      {
+        "path": "pilot0a-frozen/file-manifest.json",
+        "status": "added",
+        "sha": "e7a1af2dbdfcc3b9320abe83891e4366ae6cc083"
+      },
+      {
+        "path": "pilot0a-frozen/harness.py",
+        "status": "added",
+        "sha": "827a465ac656a1c33389c41772fa8272febefe62"
+      },
+      {
+        "path": "pilot0a-frozen/pilot_fixtures.py",
+        "status": "added",
+        "sha": "546ca2f3ac62392dae4c617f9fefe8c4d4f3cc20"
+      },
+      {
+        "path": "pilot0a-frozen/run_verified.py",
+        "status": "added",
+        "sha": "427451e45efcf928d7a3830c74d1d0b1bb620e45"
+      },
+      {
+        "path": "pilot0a-frozen/test-manifest.json",
+        "status": "added",
+        "sha": "e4c49fc31751c2ded8bae95989d6300077270bde"
+      },
+      {
+        "path": "pilot0a-frozen/test_pilot.py",
+        "status": "added",
+        "sha": "134a9b617e86e85e04738ea051ac66065328e49b"
+      },
+      {
+        "path": "pilot0b/README.md",
+        "status": "added",
+        "sha": "7cd11b889fb67c210f8d4fb665abafb3eece1d41"
+      },
+      {
+        "path": "pilot0b/SECURITY-CLOSURE.hu.md",
+        "status": "added",
+        "sha": "85ad02b4f8f944d3f21710bb817329bda01da0f5"
+      },
+      {
+        "path": "pilot0b/__init__.py",
+        "status": "added",
+        "sha": "e09cc17a1819672239370359623b1177e3c090fe"
+      },
+      {
+        "path": "pilot0b/legacy-sepolia.incomplete.json",
+        "status": "added",
+        "sha": "1c8199d7dad12ef9d0bb4780f497dc4344adaa1d"
+      },
+      {
+        "path": "pilot0b/manifest.py",
+        "status": "added",
+        "sha": "476a733f0686859bb3825a8ed897b692d558695d"
+      },
+      {
+        "path": "pilot0b/pilot0a-inventory.json",
+        "status": "added",
+        "sha": "c1f72cb34871066388b192f0dd0e8b6b0a09af7e"
+      },
+      {
+        "path": "pilot0b/tests/__init__.py",
+        "status": "added",
+        "sha": "147e31c902206e854ef2ca60ca824b6afa69ad25"
+      },
+      {
+        "path": "pilot0b/tests/test_manifest.py",
+        "status": "added",
+        "sha": "ee46eb6b0cb086eb496495134a68505290dbd0ba"
+      }
+    ]
+  },
+  {
+    "number": 17,
+    "title": "Pilot 0C: offline EOA SIWE and separately signed ID-Entity consent",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "base": "e9e1c2f3ae599046ac7c16788a6b6aa1cea1534b",
+    "base_ref": "feature/b23r6a1-pilot0b-security-closure",
+    "head": "44d077f4f0d8a0a978fb18ad18190ee361cc9608",
+    "head_ref": "feature/pilot0c-offline-wallet-proof",
+    "changed_files": [
+      {
+        "path": ".github/workflows/pilot0c.yml",
+        "status": "added",
+        "sha": "c1244948cf216b7ac37e7f6a329c259f755583d5"
+      },
+      {
+        "path": "pilot0c/DEPENDENCIES.md",
+        "status": "added",
+        "sha": "c6604c5fd33ebaead3a7847d89d9b57fb4b3c90a"
+      },
+      {
+        "path": "pilot0c/README.md",
+        "status": "added",
+        "sha": "29d7543dbee686950f60f373671484331c87442f"
+      },
+      {
+        "path": "pilot0c/crypto.cjs",
+        "status": "added",
+        "sha": "f6751609cb6c7f1b8cbf24a64d5d2ed69d4c9c86"
+      },
+      {
+        "path": "pilot0c/dependency-manifest.json",
+        "status": "added",
+        "sha": "f2740f593878094c92f7fdc58e51e68421df5a7c"
+      },
+      {
+        "path": "pilot0c/proof.cjs",
+        "status": "added",
+        "sha": "09d9bb1cf819e81dff9ce6b9af8b5b1ea05bffdb"
+      },
+      {
+        "path": "pilot0c/proof.d.cts",
+        "status": "added",
+        "sha": "a6ae4f5d8eabdf986759642e625e17ee86baaef5"
+      },
+      {
+        "path": "pilot0c/provenance.py",
+        "status": "added",
+        "sha": "57a29d899173b0e45e5831ff1ffbd25675bfc924"
+      },
+      {
+        "path": "pilot0c/run_combined.sh",
+        "status": "added",
+        "sha": "11b7f240c8d9ef83a3fd5c6860ea3c38b1b1bae0"
+      },
+      {
+        "path": "pilot0c/test-manifest.json",
+        "status": "added",
+        "sha": "06800caee1363d3716cb2e10b285493710f7e831"
+      },
+      {
+        "path": "pilot0c/tests.cjs",
+        "status": "added",
+        "sha": "103fb85e3ab9b88c2b7554eb50d68f56fcf8685b"
+      },
+      {
+        "path": "pilot0c/vendor/LICENSE.ethers",
+        "status": "added",
+        "sha": "12fe15fbb73c3693168529d3158124c19b3c27da"
+      },
+      {
+        "path": "pilot0c/vendor/LICENSE.noble-curves",
+        "status": "added",
+        "sha": "5b91e4cbb22e70cc3ec81c1ef6de6237a34dc051"
+      },
+      {
+        "path": "pilot0c/vendor/LICENSE.noble-hashes",
+        "status": "added",
+        "sha": "5b91e4cbb22e70cc3ec81c1ef6de6237a34dc051"
+      },
+      {
+        "path": "pilot0c/vendor/NOBLE-AUDIT-SCOPE.md",
+        "status": "added",
+        "sha": "9e45d22fc035a632aaa8bc7ac90f43668802d154"
+      },
+      {
+        "path": "pilot0c/vendor/ethers.umd.min.cjs",
+        "status": "added",
+        "sha": "36002edde8d2ba5f6ed39d9774b62b9bc80f63ee"
+      }
+    ]
+  },
+  {
+    "number": 18,
+    "title": "Pilot 0D-1: isolated localhost SIWE + separate consent Identity Explorer",
+    "state": "open",
+    "draft": true,
+    "merged": false,
+    "base": "44d077f4f0d8a0a978fb18ad18190ee361cc9608",
+    "base_ref": "feature/pilot0c-offline-wallet-proof",
+    "head": "38adc7955820a2d11f3e01ba592d521dfcdcb73c",
+    "head_ref": "feature/pilot0d1-localhost-explorer",
+    "changed_files": [
+      {
+        "path": ".github/workflows/pilot0d1.yml",
+        "status": "added",
+        "sha": "b008d38734bea277c079ed5de88df0297da44a73"
+      },
+      {
+        "path": "pilot0c/proof.cjs",
+        "status": "modified",
+        "sha": "6f4376ff4333332af9c7f716d9fca2d4fb5302a2"
+      },
+      {
+        "path": "pilot0c/proof.d.cts",
+        "status": "modified",
+        "sha": "f9d74c5f7a8ba02f6e8cb18e4f0127f80ed60a75"
+      },
+      {
+        "path": "pilot0d1/README.md",
+        "status": "added",
+        "sha": "7fd372471fff0c45a18e6d64b9c2730eb38cd462"
+      },
+      {
+        "path": "pilot0d1/SECURITY-REVIEW.hu.md",
+        "status": "added",
+        "sha": "2561068ddbe952d9328fdc6d18b040a5682f8883"
+      },
+      {
+        "path": "pilot0d1/browser-fixture.cjs",
+        "status": "added",
+        "sha": "f7dd3d95aa16a757a1ae4bbad2315d87608e3ff9"
+      },
+      {
+        "path": "pilot0d1/browser-manifest.json",
+        "status": "added",
+        "sha": "2261974c92e4fc4ed8efce7cc04832e31d9a8101"
+      },
+      {
+        "path": "pilot0d1/browser-tests.cjs",
+        "status": "added",
+        "sha": "6a72565def3b0f5e5237cc3808443c5d9e261821"
+      },
+      {
+        "path": "pilot0d1/check-dependencies.cjs",
+        "status": "added",
+        "sha": "fb7ae98ea342fe0a84a0dcab3cd7d17b87248afe"
+      },
+      {
+        "path": "pilot0d1/contracts.d.ts",
+        "status": "added",
+        "sha": "ce47fabc909cfa2f86e722e66e8367c7308537a7"
+      },
+      {
+        "path": "pilot0d1/demo.cjs",
+        "status": "added",
+        "sha": "94c151d6c7e07681634370203e1a7c8140181c7b"
+      },
+      {
+        "path": "pilot0d1/dependencies.json",
+        "status": "added",
+        "sha": "d8b5a071d6f387e6ff193de88c5a5befee13c216"
+      },
+      {
+        "path": "pilot0d1/fixtures.cjs",
+        "status": "added",
+        "sha": "5a8a49bcd04f8a034fbb79a5c53dacd809e78de9"
+      },
+      {
+        "path": "pilot0d1/frontend/app.mjs",
+        "status": "added",
+        "sha": "da4950b9ad0428cb355b9138881e1a4626c394c4"
+      },
+      {
+        "path": "pilot0d1/frontend/index.html",
+        "status": "added",
+        "sha": "70b21b783c0c171b9bc831a0a15f940e3ae5b833"
+      },
+      {
+        "path": "pilot0d1/frontend/policy.mjs",
+        "status": "added",
+        "sha": "5f21c992ab03973ae62e39bcb5c1da18f8a467e5"
+      },
+      {
+        "path": "pilot0d1/frontend/style.css",
+        "status": "added",
+        "sha": "60dee353c715a5a52be76a300cb85945ba7aaa8c"
+      },
+      {
+        "path": "pilot0d1/frontend/wallet.mjs",
+        "status": "added",
+        "sha": "64909458ffe191f34d0727042ae2375178756c91"
+      },
+      {
+        "path": "pilot0d1/frozen-diagnostics.py",
+        "status": "added",
+        "sha": "2a352c9324f65f294c4e3fa7828e84504f932e4f"
+      },
+      {
+        "path": "pilot0d1/package-lock.json",
+        "status": "added",
+        "sha": "e91f821135ba39f9585dce911067b4c905302980"
+      },
+      {
+        "path": "pilot0d1/package.json",
+        "status": "added",
+        "sha": "4b4a0d5666a4f3324c097c05c72a8499758fd1b2"
+      },
+      {
+        "path": "pilot0d1/provenance.py",
+        "status": "added",
+        "sha": "37de430c6fcbb5532fbf8291972780a3dd6e5fc0"
+      },
+      {
+        "path": "pilot0d1/server.cjs",
+        "status": "added",
+        "sha": "06ff3959faf6c3e24d73cfdc4dadc751291ee507"
+      },
+      {
+        "path": "pilot0d1/signer-worker.cjs",
+        "status": "added",
+        "sha": "9ce26af974417138205c755f621888357e4c7034"
+      },
+      {
+        "path": "pilot0d1/tsconfig.json",
+        "status": "added",
+        "sha": "2581e795aa422e568af51dc4c964fc6ee96e1120"
+      },
+      {
+        "path": "pilot0d1/type-tests.ts",
+        "status": "added",
+        "sha": "777bdca8670f223cdd3bff30ad9e02c53f87e38c"
+      },
+      {
+        "path": "pilot0d1/unit-manifest.json",
+        "status": "added",
+        "sha": "07df78ca460f6caa8f6b51e39e97e35f24b582cd"
+      },
+      {
+        "path": "pilot0d1/unit-tests.cjs",
+        "status": "added",
+        "sha": "75fb40a255ecb5d6e43f8de6a5951d319bd369a4"
+      }
+    ]
+  }
+]

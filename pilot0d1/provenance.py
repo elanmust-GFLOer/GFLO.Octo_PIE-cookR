@@ -38,7 +38,7 @@ def main():
         pr=event['pull_request'];assert pr['base']['sha']==BASE;head=pr['head']['sha'];assert git('show','-s','--format=%P',checkout).split()==[BASE,head];assert tree==git('rev-parse',head+'^{tree}')
     else:head=os.environ['GITHUB_SHA'];assert head==checkout
     for row in git('diff','--name-status',BASE,head).splitlines():
-        status,name=row.split('\t');assert (status=='M' and name in ALLOWED) or (status=='A' and (name.startswith('pilot0d1/') or name=='.github/workflows/pilot0d1.yml'))
+        status,name=row.split('\t');assert (status=='M' and name in ALLOWED) or (status=='A' and (name.startswith('pilot0d1/') or name in {'.github/workflows/pilot0d1.yml','.github/workflows/pilot0d1r.yml'}))
     result={'base':BASE,'head':head,'checkout':checkout,'tree':tree,'parents':git('show','-s','--format=%P',checkout).split(),'run_id':os.environ['GITHUB_RUN_ID'],'job':os.environ['GITHUB_JOB'],'python':sys.version,'browser_image':IMAGE,'inherited_tests':303,'file_sha256':{f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in git('ls-files').splitlines()}}
     out=ROOT/'evidence';out.mkdir(exist_ok=True);(out/('pilot0d1-provenance-'+os.environ['GITHUB_JOB']+'.json')).write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({k:v for k,v in result.items() if k!='file_sha256'},indent=2))
 if __name__=='__main__':main()

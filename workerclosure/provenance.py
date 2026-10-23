@@ -40,7 +40,7 @@ def main():
     actual = sorted(c.name + '.' + m.name for c in source.body if isinstance(c, ast.ClassDef)
                     for m in c.body if isinstance(m, ast.FunctionDef) and m.name.startswith('test_'))
     assert actual == json.loads((ROOT / 'workerclosure/test-manifest.json').read_text())
-    assert len(actual) == len(set(actual)) == 14
+    assert len(actual) == len(set(actual)) == 17
     versions = {n: importlib.metadata.version(n) for n in ('PyJWT', 'psycopg', 'psycopg-binary', 'typing-extensions')}
     assert versions == {'PyJWT': '2.15.1', 'psycopg': '3.3.6', 'psycopg-binary': '3.3.6', 'typing-extensions': '4.15.0'}
     assert git('rev-parse', 'HEAD') == os.environ['GITHUB_SHA']

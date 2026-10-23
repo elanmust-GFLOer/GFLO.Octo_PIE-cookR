@@ -6,6 +6,8 @@
   "file_sha256": {
     "corrected-ledger.json": "7e3aae09e4b97b1c3e699be8ccbeff9560c794069a26d2b0d695419e7c9fd819",
     "initial-ledger.json": "36c44d5328fa8f697941ac8f1f09d3e445f7715c0a33ae469b9c3583d1d5e7ea",
+    "final-17-ledger.json": "1ed2b39cbef433257877cd13472924cb833e4816ac51256f24cb5fb60c7f8231",
     "causal-probe.json": "9d0cd02ead3f6855c9f5436d0b1d63904bfc30bc34e74f944436dffe36d7e64e"
-  }
+  },
+  "final_scope": "17 controls PASS after partial-start ownership controls; full inherited tests remain separate"
 }

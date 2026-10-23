@@ -61,7 +61,7 @@ def main():
     causal = OUT / 'pilot0d1r-reaping-cause.json'
     probe = json.loads(causal.read_text()) if causal.exists() else {}
     rows.append({'suite': 'causal', 'test': 'reaping.peer_waitpid_cache_window_reproduces_false_unreaped', 'status': probe.get('status', 'NOT_EXECUTED')})
-    assert len(rows) == 340
+    assert len(rows) == 343
     counts = {s: sum(r['status'] == s for r in rows) for s in ('PASS', 'FAIL', 'ERROR', 'STARTED', 'SKIPPED', 'NOT_EXECUTED')}
     current = [r for r in rows if r['suite'] != 'frozen0a']
     current_ok = all(r['status'] == 'PASS' for r in current) and sql == 0

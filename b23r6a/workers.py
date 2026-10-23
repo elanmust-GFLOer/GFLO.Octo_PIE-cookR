@@ -50,7 +50,17 @@ class WorkerSupervisor:
         process = self.context.Process(target=_invoke, args=(sender, adapter, method, args), daemon=True)
         started = False
         try:
-            process.start()
+            try:
+                process.start()
+            except BaseException:
+                # A spawn exception can follow OS child creation. Retain its
+                # owned handle/accounting for the same bounded cleanup below.
+                with self.lock:
+                    self.failed = True
+                    if process.pid is not None:
+                        started = True
+                        self.active.add(process.pid)
+                raise
             started = True
             with self.lock:
                 self.active.add(process.pid)

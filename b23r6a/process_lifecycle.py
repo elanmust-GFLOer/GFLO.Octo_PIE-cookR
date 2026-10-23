@@ -52,7 +52,18 @@ class OwnedSpawnPopen(SpawnPopen):
 class OwnedSpawnProcess(multiprocessing.context.SpawnProcess):
     @staticmethod
     def _Popen(process_obj):
-        return OwnedSpawnPopen(process_obj)
+        child = OwnedSpawnPopen.__new__(OwnedSpawnPopen)
+        try:
+            child.__init__(process_obj)
+        except BaseException:
+            # If launch failed after creating a child, BaseProcess.start would
+            # otherwise lose the only handle before assigning its _popen field.
+            # Publish it only on failure, after serialization has finished.
+            if getattr(child, 'pid', None) is not None:
+                process_obj._popen = child
+                process_obj._sentinel = getattr(child, 'sentinel', None)
+            raise
+        return child
 
 
 class OwnedSpawnContext(multiprocessing.context.SpawnContext):

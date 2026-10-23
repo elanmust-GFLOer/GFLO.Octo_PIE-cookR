@@ -14,7 +14,7 @@ import unittest
 from unittest.mock import patch
 
 from b23r6a.contracts import ExpiredDeadline, Unavailable
-from b23r6a.process_lifecycle import OwnedSpawnPopen, OwnedSpawnContext
+from b23r6a.process_lifecycle import OwnedSpawnPopen, OwnedSpawnProcess, OwnedSpawnContext
 from b23r6a.workers import WorkerSupervisor
 
 
@@ -294,6 +294,49 @@ class LifecycleSecurity(unittest.TestCase):
         with patch('sys.platform', 'unsupported'):
             with self.assertRaisesRegex(RuntimeError, 'UNSUPPORTED_WORKER_LIFECYCLE_RUNTIME'):
                 WorkerSupervisor()
+
+    def test_spawn_factory_retains_postlaunch_failure_handle(self):
+        process = OwnedSpawnProcess(target=quiet_child)
+        def fail(child, owner):
+            child.pid = 900010
+            child.sentinel = None
+            raise OSError('POSTLAUNCH_FAILURE')
+        with patch.object(OwnedSpawnPopen, '__init__', fail):
+            with self.assertRaises(OSError):
+                OwnedSpawnProcess._Popen(process)
+        self.assertEqual(process.pid, 900010)
+        self.assertIsInstance(process._popen, OwnedSpawnPopen)
+
+    def test_postlaunch_exception_reaps_real_child_and_blocks_admission(self):
+        supervisor = WorkerSupervisor()
+        original = OwnedSpawnPopen.__init__
+        def fail(child, owner):
+            original(child, owner)
+            raise OSError('POSTLAUNCH_FAILURE')
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / 'side-effect'
+            with patch.object(OwnedSpawnPopen, '__init__', fail):
+                with self.assertRaisesRegex(OSError, 'POSTLAUNCH_FAILURE'):
+                    supervisor.run(SlowSideEffect(str(target)), 'observe', (), time.monotonic() + 1)
+            self.assertTrue(supervisor.failed)
+            self.assertFalse(supervisor.active)
+            with self.assertRaises(Unavailable):
+                supervisor.run(TrueAdapter(), 'observe', (), time.monotonic() + 1)
+            time.sleep(.25)
+            self.assertFalse(target.exists())
+
+    def test_prelaunch_exception_blocks_further_process_admission(self):
+        supervisor = WorkerSupervisor()
+        with patch.object(supervisor.context, 'Process') as factory:
+            process = factory.return_value
+            process.pid = None
+            process.start.side_effect = OSError('PRELAUNCH_FAILURE')
+            with self.assertRaises(OSError):
+                supervisor.run(TrueAdapter(), 'observe', (), time.monotonic() + 1)
+        self.assertTrue(supervisor.failed)
+        self.assertFalse(supervisor.active)
+        with self.assertRaises(Unavailable):
+            supervisor.run(TrueAdapter(), 'observe', (), time.monotonic() + 1)
 
     def test_historical_worker_is_not_current_worker(self):
         root = Path(__file__).resolve().parents[1]

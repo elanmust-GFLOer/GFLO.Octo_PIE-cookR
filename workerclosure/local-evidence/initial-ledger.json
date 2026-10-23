@@ -1,0 +1,68 @@
+{
+  "status": "FAIL",
+  "expected": [
+    "LifecycleSecurity.test_capacity_is_released_only_after_close",
+    "LifecycleSecurity.test_close_failure_retains_capacity_and_poisoned_admission",
+    "LifecycleSecurity.test_distinct_child_poll_is_not_globally_serialized",
+    "LifecycleSecurity.test_even_blocking_poll_request_uses_nonblocking_waitpid",
+    "LifecycleSecurity.test_global_cleanup_and_owner_share_real_child_state",
+    "LifecycleSecurity.test_historical_worker_is_not_current_worker",
+    "LifecycleSecurity.test_real_children_execute_concurrently_under_stage_limit",
+    "LifecycleSecurity.test_reaped_pid_is_never_signaled",
+    "LifecycleSecurity.test_timeout_kills_worker_before_late_side_effect",
+    "LifecycleSecurity.test_unkillable_child_retains_capacity_and_poisoned_admission",
+    "LifecycleSecurity.test_unsupported_runtime_fails_before_spawn",
+    "LifecycleSecurity.test_waitpid_and_cache_publication_have_one_owner"
+  ],
+  "executed": [
+    {
+      "test": "LifecycleSecurity.test_capacity_is_released_only_after_close",
+      "status": "PASS"
+    },
+    {
+      "test": "LifecycleSecurity.test_close_failure_retains_capacity_and_poisoned_admission",
+      "status": "PASS"
+    },
+    {
+      "test": "LifecycleSecurity.test_distinct_child_poll_is_not_globally_serialized",
+      "status": "PASS"
+    },
+    {
+      "test": "LifecycleSecurity.test_even_blocking_poll_request_uses_nonblocking_waitpid",
+      "status": "PASS"
+    },
+    {
+      "test": "LifecycleSecurity.test_global_cleanup_and_owner_share_real_child_state",
+      "status": "PASS"
+    },
+    {
+      "test": "LifecycleSecurity.test_historical_worker_is_not_current_worker",
+      "status": "ERROR"
+    },
+    {
+      "test": "LifecycleSecurity.test_real_children_execute_concurrently_under_stage_limit",
+      "status": "FAIL"
+    },
+    {
+      "test": "LifecycleSecurity.test_reaped_pid_is_never_signaled",
+      "status": "PASS"
+    },
+    {
+      "test": "LifecycleSecurity.test_timeout_kills_worker_before_late_side_effect",
+      "status": "PASS"
+    },
+    {
+      "test": "LifecycleSecurity.test_unkillable_child_retains_capacity_and_poisoned_admission",
+      "status": "PASS"
+    },
+    {
+      "test": "LifecycleSecurity.test_unsupported_runtime_fails_before_spawn",
+      "status": "PASS"
+    },
+    {
+      "test": "LifecycleSecurity.test_waitpid_and_cache_publication_have_one_owner",
+      "status": "PASS"
+    }
+  ],
+  "skipped": 0
+}

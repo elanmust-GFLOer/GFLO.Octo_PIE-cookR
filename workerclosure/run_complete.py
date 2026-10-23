@@ -26,6 +26,9 @@ def main():
 
     setup = run('database-create', ['psql', '-d', 'postgres', '-X', '-v', 'ON_ERROR_STOP=1', '-c',
         'CREATE DATABASE b2test_r4_baseline;', '-c', 'CREATE DATABASE b2test_r4_transition;'])
+    if setup == 0:
+        run('database-identities', ['psql', '-d', 'postgres', '-X', '-At', '-v', 'ON_ERROR_STOP=1', '-c',
+            "SELECT oid,datname FROM pg_database WHERE datname IN ('b2test_r4_baseline','b2test_r4_transition') ORDER BY datname"])
     sql = run('postgres', ['bash', 'b23r5/tests/run_combined_verified.sh']) if setup == 0 else None
     env = {k: v for k, v in os.environ.items() if not k.startswith('PG')}
     env['PYTHONPATH'] = str(ROOT)
@@ -69,6 +72,7 @@ def main():
         'counts': counts, 'executed': rows, 'commands': commands, 'production': 'BLOCK', 'pilot0d2': 'HOLD'}
     (OUT / 'workerclosure-complete-ledger.json').write_text(json.dumps(result, indent=2) + '\n')
     print('WORKER_CLOSURE_COMPLETE', json.dumps({k: v for k, v in result.items() if k not in ('executed', 'commands')}))
+    print('WORKER_CLOSURE_NONPASS', json.dumps([r for r in rows if r['status'] != 'PASS']))
     raise SystemExit(0 if all_ok else 1)
 
 

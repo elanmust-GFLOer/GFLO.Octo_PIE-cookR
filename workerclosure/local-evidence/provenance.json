@@ -1,0 +1,11 @@
+{
+  "classification": "LOCAL_CPU_ONLY_NOT_CI",
+  "python": "3.12.14",
+  "initial_scope": "12-control first candidate; 10 PASS / 1 FAIL / 1 ERROR; reaping wait issue and absent historical Git object",
+  "corrected_scope": "14 controls PASS; historical object supplied through a genuine read-only Git alternate",
+  "file_sha256": {
+    "corrected-ledger.json": "7e3aae09e4b97b1c3e699be8ccbeff9560c794069a26d2b0d695419e7c9fd819",
+    "initial-ledger.json": "36c44d5328fa8f697941ac8f1f09d3e445f7715c0a33ae469b9c3583d1d5e7ea",
+    "causal-probe.json": "9d0cd02ead3f6855c9f5436d0b1d63904bfc30bc34e74f944436dffe36d7e64e"
+  }
+}

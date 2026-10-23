@@ -37,7 +37,10 @@ def main():
                 finally:
                     ledger = pilot / 'evidence/test-ledger.json'
                     if ledger.exists():
-                        result = json.loads(ledger.read_text())
+                        raw = ledger.read_bytes()
+                        (out / 'workerclosure-historical-raw-ledger.json').write_bytes(raw)
+                        result = json.loads(raw)
+                        result['raw_ledger_sha256'] = hashlib.sha256(raw).hexdigest()
             subprocess.run(['git', 'diff', '--exit-code', 'HEAD', '--'], cwd=old, check=True, capture_output=True)
             if result is not None:
                 result.update({'historical_source': BASE, 'runner_exit': code,
@@ -48,6 +51,8 @@ def main():
             subprocess.run(['git', 'worktree', 'remove', '--force', str(old)], cwd=ROOT, check=True)
     verify_snapshot()
     print('HISTORICAL_ORIGINAL', result['status'] if result else 'NOT_EXECUTED', 'exit', code)
+    if result:
+        print('HISTORICAL_NONPASS', json.dumps([{'test': r['name'], 'status': r['status']} for r in result['tests'] if r['status'] != 'PASS']))
     raise SystemExit(0 if result and result['status'] == 'PASS' and code == 0 else 1)
 
 

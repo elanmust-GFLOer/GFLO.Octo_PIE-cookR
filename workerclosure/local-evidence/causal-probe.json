@@ -1,0 +1,53 @@
+{
+  "status": "PASS",
+  "test": "reaping.peer_waitpid_cache_window_reproduces_false_unreaped",
+  "classification": "CAUSAL_FAULT_INJECTION_NOT_ACCEPTANCE",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "rows": [
+    {
+      "thread": "peer_cleanup",
+      "event": "os_reaped_before_cache_assignment",
+      "exit_code": 0
+    },
+    {
+      "thread": "MainThread",
+      "event": "waitpid_error",
+      "errno": 10
+    },
+    {
+      "thread": "MainThread",
+      "event": "waitpid_error",
+      "errno": 10
+    },
+    {
+      "thread": "MainThread",
+      "event": "waitpid_error",
+      "errno": 10
+    },
+    {
+      "thread": "MainThread",
+      "event": "waitpid_error",
+      "errno": 10
+    },
+    {
+      "thread": "MainThread",
+      "event": "waitpid_error",
+      "errno": 10
+    },
+    {
+      "thread": "owner",
+      "event": "supervisor_final_liveness",
+      "is_alive": true,
+      "returncode_cached": null
+    },
+    {
+      "event": "after_peer_cache_assignment",
+      "is_alive": false,
+      "exit_code": 0
+    }
+  ],
+  "original_cleanup_join_seconds": 0.1,
+  "frozen_edits": false,
+  "production": "BLOCK",
+  "pilot0d2": "HOLD"
+}

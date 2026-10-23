@@ -11,8 +11,8 @@ function headers(app,who='A'){const v=app.fixture.credentials(who);return {'Cont
 async function post(app,route,body,who='A',extra={}){const response=await fetch(ORIGIN+route,{method:'POST',headers:{...headers(app,who),...extra},body:typeof body==='string'?body:JSON.stringify(body)});return {status:response.status,body:await response.json()};}
 function forbidden(app,response){assert.equal(response.body.kind,'DENIED');for(const key of ['principal','profile','syntheticPie','wallet'])assert.equal(Object.hasOwn(response.body,key),false);assert.equal(app.fixture.stats().protectedHandoffs,0);}
 async function issue(app,signer,who='A',source=app.fixture.source){const r=await post(app,'/api/challenges',{wallet:signer.address(who),chainId:11155111,requestId:randomUUID(),source},who);assert.equal(r.status,200);return r.body;}
-async function withApp(run,options={}){const signer=await isolatedSigner();const time={now:Date.now()/1000};const app=makeApplication({disposable:true,wallets:signer.wallets,wall:()=>time.now,...options});await app.listen();
- try{await run({app,signer,time});}finally{await app.close();await signer.close();}}
+async function withApp(run,options={}){const signer=await isolatedSigner();const time={now:Date.now()/1000};const app=makeApplication({disposable:true,wallets:signer.wallets,wall:()=>time.now,...options});
+ try{await app.listen();await run({app,signer,time});}finally{await app.close();await signer.close();}}
 async function pageFor(app,signer,who='A'){
  const context=await browser.newContext();context.setDefaultTimeout(5000);
  const page=await context.newPage();
@@ -50,7 +50,9 @@ test('browser.real_injected_wallet_never_contacted',()=>withApp(async()=>{const 
 test('browser.no_key_material_in_transport',()=>browserCase(async({page})=>{const bodies=[];page.on('request',r=>{if(r.url().startsWith(ORIGIN+'/api/'))bodies.push(r.postData()||'');});await full(page);assert.equal(bodies.length,2);for(const body of bodies)assert.equal(/privateKey|seedPhrase|mnemonic|AuthContext/.test(body),false);}));
 test('browser.signer_key_process_is_separate',()=>withApp(async({signer})=>{assert.notEqual(signer.stats().pid,process.pid);assert.equal(signer.stats().retired,false);assert.equal(Object.hasOwn(signer,'privateKey'),false);}));
 test('http.wrong_origin_rejected',()=>withApp(async({app,signer})=>forbidden(app,await post(app,'/api/challenges',{wallet:signer.address('A'),source:app.fixture.source,chainId:11155111,requestId:randomUUID()},'A',{Origin:'http://attacker.invalid'}))));
-test('http.wrong_host_rejected',()=>withApp(async({app,signer})=>forbidden(app,await post(app,'/api/challenges',{wallet:signer.address('A'),source:app.fixture.source,chainId:11155111,requestId:randomUUID()},'A',{Host:'attacker.invalid'}))));
+test('http.wrong_host_rejected',()=>withApp(async({app,signer})=>{const body={wallet:signer.address('A'),source:app.fixture.source,chainId:11155111,requestId:randomUUID()},raw=JSON.stringify(body);
+ const send=host=>new Promise((resolve,reject)=>{const req=http.request({hostname:'127.0.0.1',port:PORT,path:'/api/challenges',method:'POST',headers:{...headers(app),Host:host,'Content-Length':Buffer.byteLength(raw)}},res=>{const chunks=[];res.on('data',c=>chunks.push(c));res.on('end',()=>resolve({status:res.statusCode,body:JSON.parse(Buffer.concat(chunks).toString())}));});req.on('error',reject);req.end(raw);});
+ assert.equal((await send(HOST)).status,200);const response=await send('attacker.invalid');forbidden(app,response);assert.equal(response.body.reason,'HOST_DENIED');}));
 test('http.missing_origin_rejected',()=>withApp(async({app})=>{const h=headers(app);delete h.Origin;const r=await fetch(ORIGIN+'/api/verify',{method:'POST',headers:h,body:'{}'});forbidden(app,{body:await r.json()});}));
 test('http.missing_authority_rejected',()=>withApp(async({app})=>{const h=headers(app);delete h.Authorization;const r=await fetch(ORIGIN+'/api/verify',{method:'POST',headers:h,body:'{}'});forbidden(app,{body:await r.json()});}));
 test('http.csrf_token_mismatch_rejected',()=>withApp(async({app})=>forbidden(app,await post(app,'/api/verify',{},'A',{'X-GFLO-CSRF':'forged'}))));

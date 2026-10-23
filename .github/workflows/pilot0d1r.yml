@@ -1,0 +1,65 @@
+name: Pilot 0D-1R isolated diagnostics
+on:
+  push:
+    branches: ['feature/pilot0d1r-localhost-diagnostics']
+permissions:
+  contents: read
+jobs:
+  frozen-and-inherited:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16@sha256:9e2cf6287f25c3151f4c9421ccce2b17f3e60061c111a29165e0d2cdd9ff0a97
+        env: {POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: postgres}
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      B22_DISPOSABLE_ACK: 'YES'
+      B23_DISPOSABLE_ACK: 'YES'
+      R6A_DISPOSABLE_ACK: 'YES'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {fetch-depth: 0, persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22.14.0', check-latest: false}
+      - name: Hash-locked inherited development dependencies
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --require-hashes --only-binary=:all: -r b23r6a/requirements.lock
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Unmodified 303 named tests and SQL gates
+        id: inherited
+        continue-on-error: true
+        run: bash pilot0c/run_combined.sh
+      - name: Frozen consent concurrency diagnostic (no changed assertions or limits)
+        if: always()
+        run: |
+          unset PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE PGOPTIONS
+          python3 pilot0d1/diagnose_frozen.py | tee evidence/pilot0d1r-frozen-diagnostic.log
+      - name: Sanitized execution provenance
+        if: always()
+        run: |
+          git rev-parse HEAD HEAD^{tree} > evidence/pilot0d1r-checkout.log
+          git show -s --format=%P HEAD >> evidence/pilot0d1r-checkout.log
+          python3 --version > evidence/pilot0d1r-runtime.log
+          node --version >> evidence/pilot0d1r-runtime.log
+          python3 -m pip freeze --all >> evidence/pilot0d1r-runtime.log
+          find evidence -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 -r sha256sum > evidence/SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: pilot0d1r-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence/
+          if-no-files-found: error
+      - name: Preserve failure of inherited gate
+        if: steps.inherited.outcome != 'success'
+        run: exit 1

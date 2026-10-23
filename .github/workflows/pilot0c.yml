@@ -1,0 +1,62 @@
+name: Pilot 0C Offline Cryptographic Proof Gate
+on:
+  pull_request:
+    branches: ['feature/b23r6a1-pilot0b-security-closure']
+    paths: ['pilot0c/**','pilot0b/**','pilot0a-frozen/**','b22/**','b23/**','b23r1/**','b23r2/**','b23r3/**','b23r4/**','b23r5/**','b23r6a/**','.github/workflows/**']
+  push:
+    branches: ['feature/pilot0c-offline-wallet-proof']
+permissions:
+  contents: read
+jobs:
+  offline-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16@sha256:9e2cf6287f25c3151f4c9421ccce2b17f3e60061c111a29165e0d2cdd9ff0a97
+        env: {POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: postgres}
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      B22_DISPOSABLE_ACK: 'YES'
+      B23_DISPOSABLE_ACK: 'YES'
+      R6A_DISPOSABLE_ACK: 'YES'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {fetch-depth: 0, persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22.14.0', check-latest: false}
+      - name: Install inherited hash-locked Python wheels
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --require-hashes --only-binary=:all: -r b23r6a/requirements.lock
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Verify additive source, crypto artifact and checkout provenance
+        run: |
+          python3 pilot0c/provenance.py
+          python3 -m pip freeze --all | tee evidence/pip-freeze.log
+          psql --version | tee evidence/psql-client.log
+          psql -d postgres -At -c 'SELECT version()' | tee evidence/postgres-engine.log
+          docker inspect "${{ job.services.postgres.id }}" --format '{{.Image}}' | tee evidence/postgres-container-image.log
+      - name: Preserve 207 named regressions and run offline cryptographic proofs
+        run: bash pilot0c/run_combined.sh
+      - name: Hash evidence
+        if: always()
+        run: |
+          mkdir -p evidence
+          find evidence -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 -r sha256sum > evidence/SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: pilot0c-proof-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 30

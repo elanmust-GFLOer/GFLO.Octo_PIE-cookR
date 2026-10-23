@@ -5,11 +5,11 @@ const p=require('../pilot0c/proof.cjs');
 const {makeApplication,strictJson,ORIGIN,HOST,CSP,A,PA}=require('./server.cjs');
 const {signingFixture}=require('./fixtures.cjs');
 const tests=[];const test=(name,run)=>tests.push({name,run});
-function core(realm=p.localhostRealm()){
- const wallet=signingFixture();const authority=new p.SyntheticAuthority([[A,PA]]),handle=authority.issue(A),fence=new p.SyntheticFence([A]);
+function core(realm=p.localhostRealm(),clock=()=>Date.now()/1000){
+ const wallet=signingFixture();const authority=new p.SyntheticAuthority([[A,PA]],clock),handle=authority.issue(A),fence=new p.SyntheticFence([A]);
  const proof=new p.OfflineProof({authority,fence,audit:new p.SyntheticAudit(),wallets:wallet.wallets,
-  sources:[{chainId:11155111,contract:'0x1111111111111111111111111111111111111111',reference:'https://pilot0d1.invalid/protocol/demo',manifestDigest:p.digest('demo'),classification:'DEMO_FIXTURE'}],realm});
- const ch=proof.issue(handle,{wallet:wallet.address('A'),source:'https://pilot0d1.invalid/protocol/demo',requestId:randomUUID()});return {wallet,proof,handle,ch};}
+  sources:[{chainId:11155111,contract:'0x1111111111111111111111111111111111111111',reference:'https://pilot0d1.invalid/protocol/demo',manifestDigest:p.digest('demo'),classification:'DEMO_FIXTURE'}],realm,clock});
+ const ch=proof.issue(handle,{wallet:wallet.address('A'),source:'https://pilot0d1.invalid/protocol/demo',requestId:randomUUID()});return {wallet,proof,handle,ch,authority};}
 test('realm.fixed_verified_origin',()=>{const f=core();assert.equal(f.ch.message.startsWith(HOST+' wants'),true);assert.equal(f.ch.message.includes('URI: '+ORIGIN+'/id-entity'),true);assert.equal(f.ch.consent.authProject,'GFLO-PILOT-0D1-SYNTHETIC');});
 test('realm.real_localhost_signatures',async()=>{const f=core();const r=await f.proof.verify(f.handle,await f.wallet.sign(f.ch));assert.equal(r.kind,'OFFLINE_READ_ONLY_OBSERVATION');});
 test('realm.caller_constructed_realm_denied',()=>{assert.throws(()=>core({domain:HOST,uri:ORIGIN+'/id-entity'}),e=>e.code==='REALM_UNVERIFIED');});
@@ -18,6 +18,10 @@ test('realm.original_pilot_domain_not_local',()=>{assert.throws(()=>p.parseSiwe(
 test('deadline.aborted_request_cannot_consume',async()=>{const f=core(),input=await f.wallet.sign(f.ch),abort=new AbortController();abort.abort();assert.equal((await f.proof.verify(f.handle,input,{signal:abort.signal})).kind,'DENIED');assert.equal((await f.proof.verify(f.handle,input)).kind,'OFFLINE_READ_ONLY_OBSERVATION');});
 test('deadline.external_deadline_only_shortens',async()=>{const f=core();assert.equal((await f.proof.verify(f.handle,await f.wallet.sign(f.ch),{deadline:0})).kind,'DENIED');});
 test('deadline.abort_between_crypto_and_consume',async()=>{const f=core(),input=await f.wallet.sign(f.ch),abort=new AbortController();const result=f.proof.verify(f.handle,input,{signal:abort.signal});abort.abort();assert.equal((await result).kind,'DENIED');});
+test('release.exact_observation_one_handoff',async()=>{const f=core(),r=await f.proof.verify(f.handle,await f.wallet.sign(f.ch));assert.equal(r.kind,'OFFLINE_READ_ONLY_OBSERVATION');let count=0;assert.throws(()=>f.proof.deliver(f.handle,{...r},()=>count++));f.proof.deliver(f.handle,r,()=>count++);assert.throws(()=>f.proof.deliver(f.handle,r,()=>count++));assert.equal(count,1);});
+test('release.consent_revoked_after_crypto_denies',async()=>{const f=core(),r=await f.proof.verify(f.handle,await f.wallet.sign(f.ch));f.proof.revokeConsent(f.handle,f.ch.challengeId);let count=0;assert.throws(()=>f.proof.deliver(f.handle,r,()=>count++),e=>e.code==='CONSENT_REVOKED');assert.equal(count,0);});
+test('release.foreign_session_denies',async()=>{const f=core(),r=await f.proof.verify(f.handle,await f.wallet.sign(f.ch)),other=f.authority.issue(A);let count=0;assert.throws(()=>f.proof.deliver(other,r,()=>count++),e=>e.code==='AUTH_UNVERIFIED');assert.equal(count,0);});
+test('release.consent_expired_after_crypto_denies',async()=>{let now=Date.now()/1000;const f=core(p.localhostRealm(),()=>now),r=await f.proof.verify(f.handle,await f.wallet.sign(f.ch));now+=61;let count=0;assert.throws(()=>f.proof.deliver(f.handle,r,()=>count++),e=>e.code==='CONSENT_EXPIRED');assert.equal(count,0);});
 test('transport.duplicate_json_keys_rejected',()=>{assert.throws(()=>strictJson(Buffer.from('{"wallet":"A","wallet":"B"}')));});
 test('transport.escaped_json_keys_rejected',()=>{assert.throws(()=>strictJson(Buffer.from('{"\\u0077allet":"A"}')));});
 test('transport.nested_consent_string_preserved',()=>{const value={consent:JSON.stringify({profile:'fixture',scopes:['id-entity.proof.read']})};assert.equal(strictJson(Buffer.from(JSON.stringify(value))).consent,value.consent);});

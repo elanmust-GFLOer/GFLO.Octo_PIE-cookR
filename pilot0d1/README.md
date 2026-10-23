@@ -23,7 +23,7 @@ recovery, binding activation or debug-control HTTP endpoint.
 
 The test controller provisions A/B sessions out of band and attaches a page-scoped
 fixture bridge. Server capabilities go only to browser memory, never storage or
-URLs. Ephemeral wallet keys stay in ****separate, bounded signer-worker process****;
+URLs. Ephemeral wallet keys stay in **separate, bounded signer-worker process**;
 the browser, test-controller and proof server receive only public addresses/signing payloads/
 signatures. `fixtures.cjs` is never imported by the server or served as a frontend
 asset. A real injected wallet is not discovered or called. Actual extension-wallet
@@ -40,6 +40,9 @@ or production credential input is provided or requested.
 Pilot 0C gains two explicitly reviewed extensions: a branded, fixed localhost
 realm (domain/URI/project/typed-consent salt), and an optional server-supplied
 deadline/AbortSignal which can only shorten its original one-second budget.
+A trusted synchronous, one-shot handoff checks the exact in-memory proof result
+again for consent revocation/expiry, session and generation after final audit.
+Serialized/cloned observations cannot invoke it, and a failed handoff never retries.
 Arbitrary realm objects deny; no header/body/SQL setting creates a realm or
 AuthContext. The original realm remains the default. All inherited **303 test
 identities, assertions, test files, SQL gates and cryptographic bundle** are
@@ -103,13 +106,13 @@ It adds no consumer of XP or protocol privileges.
 
 ## Reproduction and evidence
 
-Local CPU-only tests: `node pilot0d1/unit-tests.cjs` (18 named cases).
+Local CPU-only tests: `node pilot0d1/unit-tests.cjs` (22 named cases).
 Inherited crypto: `node pilot0c/tests.cjs` (96 unchanged cases).
 Install test tooling: `npm ci --prefix pilot0d1 --ignore-scripts --omit=optional`.
 Type check: `pilot0d1/node_modules/.bin/tsc -p pilot0d1/tsconfig.json`.
 Browser/HTTP: `node pilot0d1/browser-tests.cjs` in the pinned disposable image.
-The current browser manifest has **47** exact cases. Full acceptance is
-**303 inherited + 18 unit + 47 browser/HTTP = 368**, plus unchanged SQL gates and
+The current browser manifest has **50** exact cases. Full acceptance is
+**303 inherited + 22 unit + 50 browser/HTTP = 375**, plus unchanged SQL gates and
 strict type checks. No skip or weakened assertion is accepted.
 
 The combined CI uses separate inherited-PostgreSQL and browser jobs. The former
@@ -156,6 +159,6 @@ seed; the extension keeps it. First inspect personal_sign bytes and EIP-712 doma
 principal/profile/source/scope/expiry and verify there are **no transaction or
 approval RPCs**. Repeat cancellation, switching, origin/chain, A/B, expiration,
 revocation, replay, CSP/storage and final-release tests. Require independent review
-of this DRAFT package, all 368 regressions/SQL/type gates, redacted evidence and
+of this DRAFT package, all 375 regressions/SQL/type gates, redacted evidence and
 a documented teardown. No funded wallet, production account, deployment, binding
 activation, migration, merge or automatic continuation is authorized here.

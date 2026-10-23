@@ -89,7 +89,7 @@ class SyntheticAudit{
  snapshot(){return freeze(this.#events.map(x=>({...x})));}
 }
 class OfflineProof{
- #authority;#fence;#audit;#wallets;#sources;#records=new Map();#requests=new Map();#nonces=new Set();#clock;#mono;#realm;
+ #authority;#fence;#audit;#wallets;#sources;#records=new Map();#requests=new Map();#nonces=new Set();#clock;#mono;#realm;#deliveries=new WeakMap();
  constructor({authority,fence,audit,wallets,sources,clock=()=>Date.now()/1000,monotonic=()=>performance.now(),realm=DEFAULT_REALM}){
   need(REALMS.has(realm),'REALM_UNVERIFIED');this.#realm=realm;
   this.#authority=authority;this.#fence=fence;this.#audit=audit;
@@ -152,13 +152,22 @@ class OfflineProof{
    const beforeAudit=this.#auth(handle);this.#live(r,beforeAudit);budget();
    need(this.#audit.approve({traceId,requestId:r.requestId,principal:r.principal,code:'PROOF_APPROVAL'})===true,'AUDIT_UNAVAILABLE');
    budget();const final=this.#auth(handle);need(final.principal===a.principal&&final.profile===a.profile&&final.sessionId===a.sessionId,'AUTH_UNVERIFIED');
-   this.#live(r,final);budget();r.status='CONSUMED';return result;
+   this.#live(r,final);budget();r.status='CONSUMED';this.#deliveries.set(result,r);return result;
   }catch(error){const reason=error instanceof Denied?error.code:'CRYPTO_OR_DEPENDENCY_INVALID';
    try{this.#audit.approve({traceId,requestId,principal:actor,code:'DENIED:'+reason});}catch{}
    return freeze({kind:'DENIED',traceId,reason,
    productionAuthorized:false,canonicalXpAuthorized:false,mutationCapabilities:[],entitlements:[],reusable:false});}
  }
- #live(r,a){need(r.status==='PENDING','PROOF_REPLAY');need(r.consentStatus==='ACTIVE','CONSENT_REVOKED');
+ // Trusted transport only: final, synchronous, one-shot handoff after its audit.
+ // A serialized/forged observation is not a delivery capability. No state is reactivated.
+ deliver(handle,observation,handoff){
+  const r=this.#deliveries.get(observation);need(r&&typeof handoff==='function','DELIVERY_INVALID');
+  const a=this.#auth(handle);need(r.principal===a.principal&&r.profile===a.profile&&r.sessionId===a.sessionId,'AUTH_UNVERIFIED');
+  need(r.status==='CONSUMED','PROOF_REPLAY');this.#consentLive(r,a);
+  this.#deliveries.delete(observation);handoff();
+ }
+ #live(r,a){need(r.status==='PENDING','PROOF_REPLAY');this.#consentLive(r,a);}
+ #consentLive(r,a){need(r.consentStatus==='ACTIVE','CONSENT_REVOKED');
   need(r.generation===a.generation,'GENERATION_STALE');const now=this.#time();need(now>=r.issuedAt&&now<r.expiresAt,'CONSENT_EXPIRED');}
 }
 module.exports=Object.freeze({OfflineProof,SyntheticAuthority,SyntheticFence,SyntheticAudit,Denied,parseSiwe,

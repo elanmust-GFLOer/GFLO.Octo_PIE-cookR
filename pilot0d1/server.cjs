@@ -84,8 +84,8 @@ function makeApplication({disposable=false,wallets=[],wall=()=>Date.now()/1000,m
    sink.approve({traceId:result.traceId,requestId:'transport',principal:result.principal,code:'TRANSPORT_RELEASE_APPROVAL'});
    const final=observe(credential.handle);check();
    if(final.principal!==result.principal||final.profile!==result.profile||final.generation!==result.generation||final.sessionId!==initial.sessionId)throw Error('GENERATION_STALE');
-   res.writeHead(200,{'Content-Type':'application/json','Content-Length':Buffer.byteLength(raw)});check();protectedHandoffs++;res.end(raw);
-  }catch(error){const allowed=new Set(['HOST_DENIED','ORIGIN_DENIED','ROUTE_DENIED','CREDENTIAL_TRANSPORT_DENIED','AUTH_UNVERIFIED','AUTHORITY_UNAVAILABLE','SESSION_REVOKED','GENERATION_STALE','CAPACITY_EXHAUSTED','INPUT_INVALID','INPUT_TOO_LARGE','CHAIN_DENIED','SOURCE_UNKNOWN','AUTHORIZATION_EXPIRED','AUDIT_UNAVAILABLE']);deny(allowed.has(error.message)?error.message:'REQUEST_DENIED');}
+   proof.deliver(credential.handle,result,()=>{check();res.writeHead(200,{'Content-Type':'application/json','Content-Length':Buffer.byteLength(raw)});check();protectedHandoffs++;res.end(raw);});
+  }catch(error){const allowed=new Set(['HOST_DENIED','ORIGIN_DENIED','ROUTE_DENIED','CREDENTIAL_TRANSPORT_DENIED','AUTH_UNVERIFIED','AUTHORITY_UNAVAILABLE','SESSION_REVOKED','GENERATION_STALE','CONSENT_REVOKED','CONSENT_EXPIRED','CAPACITY_EXHAUSTED','INPUT_INVALID','INPUT_TOO_LARGE','CHAIN_DENIED','SOURCE_UNKNOWN','AUTHORIZATION_EXPIRED','AUDIT_UNAVAILABLE']);deny(allowed.has(error.message)?error.message:'REQUEST_DENIED');}
   finally{clearTimeout(timer);if(release)release();if(slot)active--;}
  }
  const server=http.createServer({maxHeaderSize:8192},(req,res)=>{handle(req,res).catch(()=>res.destroy());});

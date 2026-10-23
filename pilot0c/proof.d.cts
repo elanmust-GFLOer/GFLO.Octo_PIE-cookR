@@ -45,6 +45,8 @@ export class OfflineProof {
  issue(handle:SyntheticSessionHandle,input:{wallet:string;source:string;requestId:string}):Challenge;
  revokeConsent(handle:SyntheticSessionHandle,id:string):void;
  verify(handle:SyntheticSessionHandle,input:Submission,options?:{deadline?:number;signal?:AbortSignal}):Promise<ProofObservation|Denial>;
+ /** Trusted synchronous transport callback; exact in-memory result, once only. */
+ deliver(handle:SyntheticSessionHandle,observation:ProofObservation,handoff:()=>void):void;
 }
 /** Administrative methods below are synthetic test controls, never endpoints. */
 export class SyntheticAuthority {

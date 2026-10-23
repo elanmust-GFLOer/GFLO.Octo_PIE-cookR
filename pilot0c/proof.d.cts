@@ -12,7 +12,7 @@ export interface Consent {
  readonly scopes: readonly ['id-entity.proof.read']; readonly generation: number;
  readonly nonce: string; readonly challengeId: string; readonly requestId: string;
  readonly siweMessageHash: string; readonly expiresAt: number; readonly consentVersion: 'pilot0c/1';
- readonly consentTextDigest: string; readonly authProject: 'GFLO-PILOT-0C-SYNTHETIC';
+ readonly consentTextDigest: string; readonly authProject: 'GFLO-PILOT-0C-SYNTHETIC'|'GFLO-PILOT-0D1-SYNTHETIC';
 }
 export interface Challenge {
  readonly challengeId: string; readonly message: string; readonly consent: Consent;
@@ -41,10 +41,10 @@ export interface Denial extends NonAuthority { readonly kind:'DENIED'; readonly 
 export class OfflineProof {
  constructor(config:{authority:SyntheticAuthority;fence:SyntheticFence;audit:SyntheticAudit;
  wallets:readonly {address:string;kind:'EOA'|'ERC1271'|'UNKNOWN'}[];sources:readonly SourceReference[];
- clock?:()=>number;monotonic?:()=>number});
+ clock?:()=>number;monotonic?:()=>number;realm?:LocalhostRealm});
  issue(handle:SyntheticSessionHandle,input:{wallet:string;source:string;requestId:string}):Challenge;
  revokeConsent(handle:SyntheticSessionHandle,id:string):void;
- verify(handle:SyntheticSessionHandle,input:Submission):Promise<ProofObservation|Denial>;
+ verify(handle:SyntheticSessionHandle,input:Submission,options?:{deadline?:number;signal?:AbortSignal}):Promise<ProofObservation|Denial>;
 }
 /** Administrative methods below are synthetic test controls, never endpoints. */
 export class SyntheticAuthority {
@@ -60,3 +60,8 @@ export class SyntheticFence {
  suspend(principal:string):void;advance(principal:string):void;
 }
 export class SyntheticAudit { available:boolean;approve(event:{traceId:string;requestId:string;principal:string;code:string}):boolean;snapshot():readonly object[]; }
+
+declare const realmBrand: unique symbol;
+export interface LocalhostRealm {readonly [realmBrand]:true; readonly domain:'127.0.0.1:43817';readonly uri:'http://127.0.0.1:43817/id-entity';}
+export function localhostRealm():LocalhostRealm;
+export const LOCAL_ORIGIN:'http://127.0.0.1:43817';

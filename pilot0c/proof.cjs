@@ -20,6 +20,13 @@ const TYPES=Object.freeze({BindingConsent:Object.freeze([
 ].map(([name,type])=>Object.freeze({name,type})))});
 const CONSENT_DOMAIN=Object.freeze({name:'GFLO Pilot 0C ID-Entity Consent',version:'0',chainId:CHAIN,
  salt:c.keccakText('gflo:pilot0c:offline-consent:v1')});
+const LOCAL_ORIGIN='http://127.0.0.1:43817';
+const DEFAULT_REALM=Object.freeze({domain:DOMAIN,uri:URI,project:PROJECT,consentDomain:CONSENT_DOMAIN});
+const LOCAL_REALM=Object.freeze({domain:'127.0.0.1:43817',uri:LOCAL_ORIGIN+'/id-entity',project:'GFLO-PILOT-0D1-SYNTHETIC',
+ consentDomain:Object.freeze({name:'GFLO Pilot 0D-1 Localhost Consent',version:'0',chainId:CHAIN,
+ salt:c.keccakText('gflo:pilot0d1:'+LOCAL_ORIGIN+':consent:v1')})});
+const REALMS=new WeakSet([DEFAULT_REALM,LOCAL_REALM]);
+function localhostRealm(){return LOCAL_REALM;}
 class Denied extends Error{constructor(code){super(code);this.code=code;}}
 function need(ok,code){if(!ok)throw new Denied(code);}
 function freeze(value){if(value&&typeof value==='object'){for(const v of Object.values(value))freeze(v);Object.freeze(value);}return value;}
@@ -35,7 +42,8 @@ function date(text){
  need(typeof text==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(text),'SIWE_MALFORMED');
  const seconds=Date.parse(text)/1000;need(Number.isSafeInteger(seconds)&&iso(seconds)===text,'SIWE_MALFORMED');return seconds;
 }
-function parseSiwe(message){
+function parseSiwe(message,realm=DEFAULT_REALM){
+ need(REALMS.has(realm),'REALM_UNVERIFIED');
  need(typeof message==='string'&&Buffer.byteLength(message)<=4096&&!/[\r\x00-\x08\x0b-\x1f\x7f-\uffff]/.test(message),'SIWE_MALFORMED');
  const l=message.split('\n');
  need(l.length===18&&l[0].endsWith(' wants you to sign in with your Ethereum account:')&&l[2]===''&&l[4]===''&&l[13]==='Resources:','SIWE_MALFORMED');
@@ -47,14 +55,14 @@ function parseSiwe(message){
  need(wallet===l[1]&&values[1]==='1'&&/^[1-9][0-9]{0,14}$/.test(values[2])&&/^[A-Za-z0-9]{8,128}$/.test(values[3])&&uuid(values[7]),'SIWE_MALFORMED');
  need(l[3].length>0&&l[3].length<=256,'SIWE_MALFORMED');
  let uri;try{uri=new URL(values[0]);}catch{throw new Denied('SIWE_MALFORMED');}
- need(uri.protocol==='https:'&&!uri.username&&!uri.password&&!uri.hash,'SIWE_MALFORMED');
+ need((uri.protocol==='https:'||(realm===LOCAL_REALM&&uri.origin===LOCAL_ORIGIN))&&!uri.username&&!uri.password&&!uri.hash,'SIWE_MALFORMED');
  const resources=l.slice(14).map(line=>{need(line.startsWith('- '),'SIWE_MALFORMED');const v=line.slice(2);try{new URL(v);}catch{throw new Denied('SIWE_MALFORMED');}return v;});
  need(new Set(resources).size===resources.length,'SIWE_MALFORMED');
  return freeze({domain,wallet,statement:l[3],uri:values[0],version:1,chainId:Number(values[2]),nonce:values[3],
   issuedAt:date(values[4]),expiresAt:date(values[5]),requestId:values[7],notBefore:date(values[6]),resources});
 }
-function siwe(context){
- return `${DOMAIN} wants you to sign in with your Ethereum account:\n${context.wallet}\n\n${STATEMENT}\n\nURI: ${URI}\nVersion: 1\nChain ID: ${CHAIN}\nNonce: ${context.nonce}\nIssued At: ${iso(context.issuedAt)}\nExpiration Time: ${iso(context.expiresAt)}\nNot Before: ${iso(context.issuedAt)}\nRequest ID: ${context.requestId}\nResources:\n- urn:gflo:pilot0c:principal:${context.principal}\n- urn:gflo:pilot0c:profile:${context.profile}\n- urn:gflo:pilot0c:challenge:${context.id}\n- ${context.source.reference}`;
+function siwe(context,realm=DEFAULT_REALM){
+ return `${realm.domain} wants you to sign in with your Ethereum account:\n${context.wallet}\n\n${STATEMENT}\n\nURI: ${realm.uri}\nVersion: 1\nChain ID: ${CHAIN}\nNonce: ${context.nonce}\nIssued At: ${iso(context.issuedAt)}\nExpiration Time: ${iso(context.expiresAt)}\nNot Before: ${iso(context.issuedAt)}\nRequest ID: ${context.requestId}\nResources:\n- urn:gflo:pilot0c:principal:${context.principal}\n- urn:gflo:pilot0c:profile:${context.profile}\n- urn:gflo:pilot0c:challenge:${context.id}\n- ${context.source.reference}`;
 }
 class SyntheticAuthority{
  #handles=new WeakMap();#owners;#clock;
@@ -81,8 +89,9 @@ class SyntheticAudit{
  snapshot(){return freeze(this.#events.map(x=>({...x})));}
 }
 class OfflineProof{
- #authority;#fence;#audit;#wallets;#sources;#records=new Map();#requests=new Map();#nonces=new Set();#clock;#mono;
- constructor({authority,fence,audit,wallets,sources,clock=()=>Date.now()/1000,monotonic=()=>performance.now()}){
+ #authority;#fence;#audit;#wallets;#sources;#records=new Map();#requests=new Map();#nonces=new Set();#clock;#mono;#realm;
+ constructor({authority,fence,audit,wallets,sources,clock=()=>Date.now()/1000,monotonic=()=>performance.now(),realm=DEFAULT_REALM}){
+  need(REALMS.has(realm),'REALM_UNVERIFIED');this.#realm=realm;
   this.#authority=authority;this.#fence=fence;this.#audit=audit;
   this.#wallets=new Map(wallets.map(w=>[c.address(w.address),w.kind]));
   this.#sources=new Map(sources.map(s=>{need(s.chainId===CHAIN&&typeof s.reference==='string'&&new URL(s.reference).protocol==='https:'&&/^0x[0-9a-f]{64}$/.test(s.manifestDigest),'SOURCE_INVALID');
@@ -106,37 +115,38 @@ class OfflineProof{
   const nonce=randomBytes(32).toString('hex');need(!this.#nonces.has(nonce),'NONCE_COLLISION');
   const record={id:randomUUID(),principal:a.principal,profile:a.profile,sessionId:a.sessionId,generation:a.generation,
    wallet,source,nonce,issuedAt,expiresAt:issuedAt+60,requestId:input.requestId,status:'PENDING',consentStatus:'ACTIVE'};
-  record.message=siwe(record);
+  record.message=siwe(record,this.#realm);
   record.consent=freeze({principal:a.principal,profile:a.profile,wallet,chainId:CHAIN,protocolSource:source.reference,
    protocolManifestDigest:source.manifestDigest,scopes:[SCOPE],generation:a.generation,nonce:'0x'+nonce,
    challengeId:record.id,requestId:input.requestId,siweMessageHash:c.messageHash(record.message),expiresAt:record.expiresAt,
-   consentVersion:'pilot0c/1',consentTextDigest:c.keccakText(CONSENT_TEXT),authProject:PROJECT});
-  const response=freeze({challengeId:record.id,message:record.message,consent:record.consent,consentDomain:CONSENT_DOMAIN,
+   consentVersion:'pilot0c/1',consentTextDigest:c.keccakText(CONSENT_TEXT),authProject:this.#realm.project});
+  const response=freeze({challengeId:record.id,message:record.message,consent:record.consent,consentDomain:this.#realm.consentDomain,
    consentTypes:TYPES,consentText:CONSENT_TEXT,expiresAt:record.expiresAt});
   this.#auth(handle);this.#records.set(record.id,record);this.#requests.set(key,requestDigest);this.#nonces.add(nonce);return response;
  }
  revokeConsent(handle,id){const a=this.#auth(handle),r=this.#records.get(id);need(r&&r.principal===a.principal&&r.profile===a.profile,'PROOF_DENIED');r.consentStatus='REVOKED';}
- async verify(handle,input){
+ async verify(handle,input,options={}){
   const traceId=randomUUID();const started=this.#mono();let last=started;let actor='unknown',requestId='unknown';
-  const budget=()=>{const now=this.#mono();need(Number.isFinite(now)&&now>=last&&now-started<1000,'AUTHORIZATION_EXPIRED');last=now;};
+  const limit=Math.min(started+1000,options.deadline===undefined?started+1000:options.deadline);
+  const budget=()=>{const now=this.#mono();need(!options.signal?.aborted,'REQUEST_ABORTED');need(Number.isFinite(now)&&Number.isFinite(limit)&&now>=last&&now<limit,'AUTHORIZATION_EXPIRED');last=now;};
   try{
    budget();plain(input,['challengeId','message','siweSignature','consent','consentSignature']);
    need(uuid(input.challengeId),'PROOF_DENIED');const a=this.#auth(handle);const r=this.#records.get(input.challengeId);
    need(r&&r.principal===a.principal&&r.profile===a.profile&&r.sessionId===a.sessionId,'PROOF_DENIED');
-   actor=a.principal;requestId=r.requestId;this.#live(r,a);const parsed=parseSiwe(input.message);
-   need(parsed.domain===DOMAIN&&parsed.uri===URI&&parsed.chainId===CHAIN&&parsed.wallet===r.wallet&&parsed.nonce===r.nonce&&parsed.requestId===r.requestId,'SIWE_CONTEXT_MISMATCH');
+   actor=a.principal;requestId=r.requestId;this.#live(r,a);const parsed=parseSiwe(input.message,this.#realm);
+   need(parsed.domain===this.#realm.domain&&parsed.uri===this.#realm.uri&&parsed.chainId===CHAIN&&parsed.wallet===r.wallet&&parsed.nonce===r.nonce&&parsed.requestId===r.requestId,'SIWE_CONTEXT_MISMATCH');
    need(parsed.issuedAt===r.issuedAt&&parsed.expiresAt===r.expiresAt&&parsed.notBefore===r.issuedAt&&input.message===r.message,'SIWE_CONTEXT_MISMATCH');
    need(c.recoverMessage(input.message,input.siweSignature)===r.wallet,'SIWE_SIGNER_MISMATCH');budget();
    // Exact server-derived consent. SIWE never substitutes for this signature.
    need(typeof input.consent==='string'&&input.consent.length<=4096&&input.consent===JSON.stringify(r.consent),'CONSENT_CONTEXT_MISMATCH');
-   need(c.recoverConsent(CONSENT_DOMAIN,TYPES,r.consent,input.consentSignature)===r.wallet,'CONSENT_SIGNER_MISMATCH');budget();
+   need(c.recoverConsent(this.#realm.consentDomain,TYPES,r.consent,input.consentSignature)===r.wallet,'CONSENT_SIGNER_MISMATCH');budget();
    // Separate concurrent attempts can reach this point; final commit is synchronous.
    await Promise.resolve();budget();
    const result=freeze({kind:'OFFLINE_READ_ONLY_OBSERVATION',traceId,principal:r.principal,profile:r.profile,wallet:r.wallet,
     chainId:CHAIN,protocolSource:r.source.reference,protocolManifestDigest:r.source.manifestDigest,generation:r.generation,
     scopes:[SCOPE],expiresAt:r.expiresAt,sourceClassification:r.source.classification,
     evidenceClassifications:['DEMO_FIXTURE','VERIFIED_WALLET_CONTROL',r.source.classification],
-    consentDigest:c.typedHash(CONSENT_DOMAIN,TYPES,r.consent),productionAuthorized:false,canonicalXpAuthorized:false,
+    consentDigest:c.typedHash(this.#realm.consentDomain,TYPES,r.consent),productionAuthorized:false,canonicalXpAuthorized:false,
     mutationCapabilities:[],entitlements:[],reusable:false});
    // An approval event is not a delivery receipt. Recheck authority AFTER audit.
    const beforeAudit=this.#auth(handle);this.#live(r,beforeAudit);budget();
@@ -152,4 +162,4 @@ class OfflineProof{
   need(r.generation===a.generation,'GENERATION_STALE');const now=this.#time();need(now>=r.issuedAt&&now<r.expiresAt,'CONSENT_EXPIRED');}
 }
 module.exports=Object.freeze({OfflineProof,SyntheticAuthority,SyntheticFence,SyntheticAudit,Denied,parseSiwe,
- DOMAIN,URI,CHAIN,PROJECT,STATEMENT,CONSENT_TEXT,SCOPE,CONSENT_DOMAIN,TYPES,digest});
+ localhostRealm,LOCAL_ORIGIN,DOMAIN,URI,CHAIN,PROJECT,STATEMENT,CONSENT_TEXT,SCOPE,CONSENT_DOMAIN,TYPES,digest});

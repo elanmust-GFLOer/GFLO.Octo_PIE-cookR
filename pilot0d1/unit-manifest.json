@@ -1,0 +1,18 @@
+[
+  "boundary.fixture_signer_not_server_import",
+  "boundary.frontend_imports_only_wallet_adapter",
+  "browser.csp_no_inline_or_external_script",
+  "deadline.abort_between_crypto_and_consume",
+  "deadline.aborted_request_cannot_consume",
+  "deadline.external_deadline_only_shortens",
+  "realm.caller_constructed_realm_denied",
+  "realm.fixed_verified_origin",
+  "realm.foreign_domain_resigned_rejected",
+  "realm.original_pilot_domain_not_local",
+  "realm.real_localhost_signatures",
+  "transport.disposable_ack_mandatory",
+  "transport.duplicate_json_keys_rejected",
+  "transport.escaped_json_keys_rejected",
+  "transport.nested_consent_string_preserved",
+  "transport.no_real_wallet_fixture_by_default"
+]

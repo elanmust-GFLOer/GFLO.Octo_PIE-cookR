@@ -1,0 +1,13 @@
+{
+  "playwright": "1.56.1",
+  "playwright_upstream": "54c711571a37de525377e6f3d3608c3e029b1829",
+  "playwright_revision": "1194",
+  "chromium": "141.0.7390.37",
+  "typescript": "5.9.3",
+  "browser_image": "mcr.microsoft.com/playwright:v1.56.1-noble@sha256:f1e7e01021efd65dd1a2c56064be399f3e4de00fd021ac561325f2bfbb2b837a",
+  "lock_seed": "https://github.com/appwrite/sdk-generator/blob/ce0b4844cd951d589c6f8b1cdaf552eb916d4ac7/templates/web/package-lock.json.twig",
+  "registry_independent_check": "check-dependencies.cjs --registry; exact dist.integrity before npm ci --ignore-scripts",
+  "image_seed": "https://github.com/porygon-zero/conwaze-app/blob/1ec868ae6015cf3fecd53c8b72729398cbf12774/e2e/Dockerfile",
+  "image_verification": "docker pull immutable digest and record RepoDigests; browser version/revision enforced",
+  "production_authorized": false
+}

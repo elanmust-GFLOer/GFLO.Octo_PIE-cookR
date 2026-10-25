@@ -10,8 +10,24 @@ export function pinnedVerifier({rpc,wallet,blockHash,codeHash}){
    if((await rpc("eth_chainId",[])).toLowerCase()!=="0xaa36a7")return false;
    const block=await rpc("eth_getBlockByHash",[blockHash,false]);
    const finalized=await rpc("eth_getBlockByNumber",["finalized",false]);
-   if(!block||block.hash.toLowerCase()!==blockHash.toLowerCase()||
-      !finalized||BigInt(finalized.number)<BigInt(block.number))return false;
+   if(!block||!finalized||!/^0x[0-9a-fA-F]{64}$/.test(block.hash??'')||
+      block.hash.toLowerCase()!==blockHash.toLowerCase()||
+      !/^0x[0-9a-fA-F]+$/.test(block.number??'')||
+      !/^0x[0-9a-fA-F]{64}$/.test(finalized.hash??'')||
+      !/^0x[0-9a-fA-F]+$/.test(finalized.number??''))return false;
+   const targetHeight=BigInt(block.number),finalHeight=BigInt(finalized.number);
+   if(finalHeight<targetHeight||finalHeight-targetHeight>128n)return false;
+   let cursor=finalized.hash.toLowerCase(),height=finalHeight;
+   if(height===targetHeight&&cursor!==blockHash.toLowerCase())return false;
+   while(height>targetHeight){
+     const step=await rpc("eth_getBlockByHash",[cursor,false]);
+     if(!step||!/^0x[0-9a-fA-F]{64}$/.test(step.hash??'')||
+       !/^0x[0-9a-fA-F]{64}$/.test(step.parentHash??'')||
+       !/^0x[0-9a-fA-F]+$/.test(step.number??'')||
+       step.hash.toLowerCase()!==cursor||BigInt(step.number)!==height)return false;
+     cursor=step.parentHash.toLowerCase();height--;
+   }
+   if(cursor!==blockHash.toLowerCase())return false;
    const pin={blockHash,requireCanonical:true};
    const code=await rpc("eth_getCode",[target,pin]);
    if(typeof code!=="string"||keccak256(code).toLowerCase()!==codeHash.toLowerCase())return false;

@@ -35,6 +35,23 @@ export async function verifySources(clients){
  const blocks=await Promise.all(clients.map(c=>c("eth_getBlockByNumber",[height,false])));
  if(blocks.some(b=>!b||BigInt(b.number)!==h||!/^0x[0-9a-fA-F]{64}$/.test(b.hash||"")))fail("BLOCK_FORMAT");
  if(blocks[0].hash.toLowerCase()!==blocks[1].hash.toLowerCase())fail("BLOCK_DISAGREEMENT");
+ // Each provider's own finalized head must descend canonically to selected block.
+ // Provider-reported ancestry is NOT independent Ethereum finality proof.
+ for(let i=0;i<clients.length;i++){
+   let cursor=finalized[i].hash.toLowerCase();
+   let heightNow=BigInt(finalized[i].number);
+   if(heightNow<h||heightNow-h>128n)fail("ANCESTRY_WINDOW");
+   while(heightNow>h){
+     const step=await clients[i]("eth_getBlockByHash",[cursor,false]);
+     if(!step||!/^0x[0-9a-fA-F]{64}$/.test(step.hash??"")||
+       !/^0x[0-9a-fA-F]{64}$/.test(step.parentHash??"")||
+       !hex(step.number)||step.hash.toLowerCase()!==cursor||
+       BigInt(step.number)!==heightNow)fail("FINALIZED_ANCESTRY_INVALID");
+     cursor=step.parentHash.toLowerCase();
+     heightNow--;
+   }
+   if(cursor!==blocks[i].hash.toLowerCase())fail("FINALIZED_ANCESTRY_MISMATCH");
+ }
  const blockHash=blocks[0].hash.toLowerCase(),pin={blockHash,requireCanonical:true};
  const rows=[];
  for(const contract of contracts){

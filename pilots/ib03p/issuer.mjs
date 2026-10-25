@@ -11,7 +11,7 @@ const deny=(reason)=>{process.stdout.write(JSON.stringify({ok:false,reason}));};
 const quote=x=>"'"+String(x).replaceAll("'","''")+"'";
 function db(query){
  const p=spawnSync("psql",["-X","-Atq","-v","ON_ERROR_STOP=1","-c",query],{encoding:"utf8",timeout:10000,
- env:{PGHOST:"127.0.0.1",PGPORT:"5432",PGDATABASE:"gflo_test",PGUSER:"gflo_issuer_reader_lab",PGPASSWORD:process.env.IB03P_PG_PASSWORD??""}});
+ env:{PGHOST:"127.0.0.1",PGPORT:"5432",PGDATABASE:"gflo_test",PGUSER:"gflo_issuer_reader_lab",PGPASSFILE:process.env.IB03P_PGPASSFILE??""}});
  if(p.status!==0)throw Error("CONTEXT_UNAVAILABLE");return p.stdout.trim();
 }
 try{

@@ -8,5 +8,9 @@ printf '%s' "$KEY" | sudo tee /tmp/gflo-ib03p-key/secret.hex >/dev/null
 sudo chown gflo_issuer_os:gflo_issuer_os /tmp/gflo-ib03p-key/secret.hex
 sudo chmod 0400 /tmp/gflo-ib03p-key/secret.hex
 echo "IB03P_SECRET_PATH=/tmp/gflo-ib03p-key/secret.hex" >> "$GITHUB_ENV"
-echo "IB03P_FIXTURE_KEY_HEX=$KEY" >> "$GITHUB_ENV"
+psql -X -v ON_ERROR_STOP=1 -c "INSERT INTO ib03l.keys VALUES ('labIssuer1',decode('$KEY','hex'),true,1)" >/dev/null
+printf '127.0.0.1:5432:gflo_test:gflo_issuer_reader_lab:lab-issuer-reader-only\n' | sudo tee /tmp/gflo-ib03p-key/.pgpass >/dev/null
+sudo chown gflo_issuer_os:gflo_issuer_os /tmp/gflo-ib03p-key/.pgpass
+sudo chmod 0600 /tmp/gflo-ib03p-key/.pgpass
+echo "IB03P_PGPASSFILE=/tmp/gflo-ib03p-key/.pgpass" >> "$GITHUB_ENV"
 # Ephemeral lab setup knows the key: this is NOT HSM or strong CI-runner compromise isolation.

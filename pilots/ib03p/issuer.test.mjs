@@ -17,7 +17,6 @@ const message=[domain+" wants you to sign in with your Ethereum account:",wallet
 "GFLO issuer isolation","","URI: "+uri,"Version: 1","Chain ID: 11155111",
 "Nonce: "+nonce,"Issued At: "+issued].join("\n");
 const digest=messageDigest(message);
-sql("INSERT INTO ib03l.keys VALUES('labIssuer1',decode("+quote(process.env.IB03P_FIXTURE_KEY_HEX)+",'hex'),true,1)");
 sql("INSERT INTO ib03d2.bindings VALUES('alice',11155111,"+quote(addr)+",'ACTIVE',1)");
 sql("INSERT INTO ib03d2.consents VALUES('alice',11155111,'pie:xp:read',true,now()+interval '10 minutes',1)");
 sql("BEGIN;INSERT INTO ib03d2.challenges VALUES("+quote(nonce)+",'alice',"+quote(addr)+
@@ -30,7 +29,7 @@ issuerKeyId:"labIssuer1",keyEpoch:1,sessionSeconds:300};
 function issuer(req){
  const p=spawnSync("sudo",["-u","gflo_issuer_os","env",
  "IB03P_SECRET_PATH="+process.env.IB03P_SECRET_PATH,
- "IB03P_PG_PASSWORD=lab-issuer-reader-only",
+ "IB03P_PGPASSFILE="+process.env.IB03P_PGPASSFILE,
  "PATH="+process.env.PATH,process.execPath,"pilots/ib03p/issuer.mjs"],{
  input:JSON.stringify(req),encoding:"utf8",timeout:12000});
  if(p.status!==0)throw Error("ISSUER:"+p.stderr.slice(0,150));return JSON.parse(p.stdout);

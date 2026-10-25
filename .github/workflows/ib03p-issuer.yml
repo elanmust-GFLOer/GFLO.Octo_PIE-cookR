@@ -56,5 +56,7 @@ jobs:
           cp cookr/pilots/ib03m/trust-chain.mjs harness/pilots/ib03m/
           cp cookr/pilots/ib03o/admission.mjs harness/pilots/ib03o/
           cp cookr/pilots/ib03p/*.mjs harness/pilots/ib03p/
+          sudo chmod o+x /home/runner /home/runner/work /home/runner/work/GFLO.Octo_PIE-cookR /home/runner/work/GFLO.Octo_PIE-cookR/GFLO.Octo_PIE-cookR
+          sudo chmod -R o+rX harness
           cd harness
           node pilots/ib03p/issuer.test.mjs

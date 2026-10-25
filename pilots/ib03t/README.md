@@ -1,0 +1,7 @@
+# IB-03T — Signed key epoch and two-issuer full session race
+
+LAB ONLY — PRODUCTION BLOCK.
+
+The admission Ed25519 signature now commits to the explicit key epoch under GFLO_IB03T_EPOCH_V1; the new issuer gateway compares the authenticated epoch to the primary PostgreSQL key registry and atomically claims nonce under matching epoch. Two separate issuer gateway processes receive the SAME authenticated EIP-191 EOA/SIWE message and admission envelope, race for one nonce, and only the winner can produce a valid context-bound HMAC. D3/IB03O subsequently permits one session. Rotation denies signed old-epoch requests even if the public key remains identical. Database connection failure denies without local fallback.
+
+**Limitations:** issuer workers are same-host processes, not independently deployed service replicas, and the final session redemption is invoked by a separate test client after the winner returns attestation. CI's ephemeral signing keys are not KMS/HSM. The gateway's replay PostgreSQL password is supplied in synthetic CI process arguments; unsuitable for production. The canonical format nests IB03Q schema with V1 epoch domain separation but is not a formal cross-language canonical ABI. Issuer's hard-coded testnet policy and constrained EIP-4361 parser, ERC-1271, production RLS, KMS/HSM, distributed provider failures, mTLS and response-disclosure revocation remain open. A compromised replay DB caller can burn nonces as DoS but should not produce a forged MAC. Owner privileged DB remains trusted.

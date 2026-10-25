@@ -58,7 +58,7 @@ console.log("PASS authentic attestation -> PG transaction one session, replay an
 const n2="GFLO_NONCE_J_002",s2="SESSION_IB03J_00002";insertChallenge(n2);
 const next=create(n2,s2,expires());
 admin("UPDATE ib03j.keys SET active=false,generation=generation+1 WHERE key_id="+q(kid));
-assert.equal(verifierRegister(next),false);
+assert.throws(()=>verifierRegister(next),/KEY_REVOKED/);
 assert.equal(pg(redeem(n2,s2)),"f");
 console.log("PASS key revocation prevents new verifier receipts");
 admin("UPDATE ib03j.keys SET active=true WHERE key_id="+q(kid));

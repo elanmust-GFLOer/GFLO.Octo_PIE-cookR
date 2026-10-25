@@ -51,7 +51,9 @@ assert.equal((await admission.admit({...request(valid,"SESSION_IB03M_00001"),sig
 assert.equal(signCalls,0);
 assert.equal(admin("SELECT consumed_at IS NULL FROM ib03d2.challenges WHERE id="+pw(valid.nonce)),"t");
 console.log("PASS bad real EOA signature never reaches MAC signer or consumes nonce");
-assert.equal((await admission.admit(request(valid,"SESSION_IB03M_00001"))).status,"LAB_SESSION_ISSUED");
+const validResult=await admission.admit(request(valid,"SESSION_IB03M_00001"));
+console.log("DIAGNOSTIC_VALID",validResult.status,validResult.reason??"NONE","SIGN_CALLS",signCalls);
+assert.equal(validResult.status,"LAB_SESSION_ISSUED");
 assert.equal((await admission.admit(request(valid,"SESSION_IB03M_00001"))).status,"DENIED");
 assert.equal(admin("SELECT count(*) FROM ib03d2.sessions"),"1");
 console.log("PASS real EIP191 -> HMAC issuer -> DB-native MAC -> atomic session and replay DENY");

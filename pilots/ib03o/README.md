@@ -1,0 +1,8 @@
+# IB-03O — Atomic Challenge Context Binding & Issuer Boundary
+Scope: disposable PostgreSQL 16, real synthetic-key EIP-191 wallet signatures, separated test signing process.
+
+IB-03O binds the immutable IB-03N row and challenge row INSIDE the SAME PostgreSQL transaction as HMAC verification and D3 nonce-consuming session issuance. The new MAC domain tag V1 covers key ID/epoch, nonce, subject, wallet, chain, message SHA256, session, binding and consent generation, TTL, MAC expiration, SIWE domain, URI, read scope, context issued timestamp and context expiry timestamp. The old IB-03L enforcer EXECUTE grant is revoked. The attestation issuer DB role has no direct SELECT/UPDATE/EXECUTE rights on challenge, key or session. Negative tests reject false SIWE and stale/wrong canonical context.
+
+**Security caveats:** MAC remains HMAC SHA256 not PostgreSQL-native Ed25519. The signing process is separately invoked but the test caller still provisions the secret, so this is NOT a real remote signer/HSM/KMS/mTLS separation. PostgreSQL owner and signer remain roots of trust. SQL application and MAC text equality are not independently side-channel audited. The canonical timestamps are compared at second precision; strict end-to-end representation and changes to schema require independent review. Context row immutability is owner-exempt, DB-side source signature verification is absent, distributed response-release revocation and production DB grants not verified. Session ID is supplied by the test caller; do NOT reuse this in production.
+
+No Supabase/Lovable changes, deployments, merges, live wallet/PIE reader writes.

@@ -1,0 +1,3 @@
+# IB-03Y — Stateful ERC-1271 (local EVM)
+Status: LAB CANDIDATE / PRODUCTION BLOCK.
+Runs a real Solidity mutable owner, owner-only rotation, and EIP-1271 magic-value verification across two separately captured EthereumJS state roots. Runtime bytecode hash is expected to remain unchanged. EOA signatures use disposable test wallets. A state root is NOT an actual Sepolia block hash, and the test proves no chain finality, no live RPC, no deployed V04, and no session authorization. Independent Codex review remains pending.

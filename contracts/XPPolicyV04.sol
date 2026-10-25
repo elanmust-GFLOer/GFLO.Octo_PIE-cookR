@@ -18,12 +18,13 @@ contract XPPolicyV04 is EIP712 {
     uint32 public constant WEEKLY_CAP = 3000;
     uint16 public constant HIGH_TRUST_FROM = 500;
     uint64 public constant CHALLENGE_PERIOD = 3 days; // PILOT parameter
+    uint64 public constant FINALIZATION_WINDOW = 4 days; // IB-02C candidate policy, NOT APPROVED
 
     bytes32 public constant PROOF_TYPEHASH = keccak256(
         "GFLOEvidence(address recipient,bytes32 ruleId,bytes32 eventId,bytes32 evidenceDigest,uint256 nonce,uint64 issuedAt,uint64 validUntil)"
     );
 
-    enum Status { NONE, PENDING, VALID, REVOKED }
+    enum Status { NONE, PENDING, VALID, REVOKED, EXPIRED }
     struct Rule { uint16 amount; uint32 maxClaims; bool active; }
     struct Proof {
         address recipient;
@@ -75,11 +76,13 @@ contract XPPolicyV04 is EIP712 {
     error LimitReached();
     error BadGrantStatus();
     error TooEarly();
+    error FinalizationExpired();
     error InvalidIdentity();
 
     event GrantPending(bytes32 indexed claimId,address indexed recipient,address indexed attestor,uint16 amount,uint64 finalizesAt);
     event GrantFinalized(bytes32 indexed claimId,address indexed recipient,uint16 amount);
     event GrantRevoked(bytes32 indexed claimId,address indexed recipient,uint16 amount,bytes32 reason);
+    event GrantExpired(bytes32 indexed claimId,address indexed recipient,uint16 amount);
     event PausedChanged(bool state);
     event VerifierChanged(address indexed verifier,uint8 role);
     event AttestorChanged(bytes32 indexed ruleId,address indexed attestor,bool allowed);
@@ -169,6 +172,8 @@ contract XPPolicyV04 is EIP712 {
         Grant storage grant=grants[claimId];
         if(grant.status!=Status.PENDING) revert BadGrantStatus();
         if(block.timestamp<grant.finalizesAt) revert TooEarly();
+        // Expiry is enforced even if no keeper has cleaned the pending grant.
+        if(block.timestamp >= uint256(grant.finalizesAt)+FINALIZATION_WINDOW) revert FinalizationExpired();
         // ERC-1271 validity is stateful: issuer disable, source pause, digest revoke and expiry
         // must invalidate a pending claim at the point it would become canonical XP.
         if(grant.attestor != sourceBoundAttestor || grant.attestor.codehash != sourceBoundRuntimeHash ||
@@ -178,18 +183,43 @@ contract XPPolicyV04 is EIP712 {
         emit GrantFinalized(claimId,grant.recipient,grant.amount);
     }
 
+    /// @notice A permissionless and bounded recovery of a stale reservation.
+    /// @dev No external calls, no loop. Returns false without state changes when no cleanup is due.
+    ///      Replay markers remain consumed after expiration.
+    function expirePending(bytes32 claimId) external returns (bool) {
+        Grant storage grant=grants[claimId];
+        if(grant.status!=Status.PENDING) return false;
+        if(block.timestamp < uint256(grant.finalizesAt)+FINALIZATION_WINDOW) return false;
+        _releasePendingQuota(grant);
+        grant.status=Status.EXPIRED;
+        emit GrantExpired(claimId,grant.recipient,grant.amount);
+        return true;
+    }
+
+    /// @dev Release only reservations that have never become valid issuance.
+    ///      The original submit bucket is derived from the immutable 3-day challenge window.
+    ///      Arithmetic deliberately reverts if state accounting is inconsistent.
+    function _releasePendingQuota(Grant storage grant) private {
+        uint256 submitTime=uint256(grant.finalizesAt)-CHALLENGE_PERIOD;
+        claimsPerRule[grant.recipient][grant.ruleId]-=1;
+        dailyXP[grant.recipient][submitTime / 1 days]-=grant.amount;
+        weeklyXP[grant.recipient][submitTime / 7 days]-=grant.amount;
+    }
+
     /// @notice High-privilege correction; governance must document reason and appeal off-chain.
     function revoke(bytes32 claimId,bytes32 reason) external onlyOwner {
         Grant storage grant=grants[claimId];
         if(grant.status!=Status.PENDING && grant.status!=Status.VALID) revert BadGrantStatus();
         if(reason==bytes32(0)) revert InvalidProof();
-        if(grant.status==Status.VALID) validEarnedXP[grant.recipient]-=grant.amount;
+        if(grant.status==Status.PENDING) _releasePendingQuota(grant);
+        else validEarnedXP[grant.recipient]-=grant.amount;
         grant.status=Status.REVOKED;
         emit GrantRevoked(claimId,grant.recipient,grant.amount,reason);
     }
 
     /// @notice ABI-compatible with fresh TrustedXPSourceRegistryV02, which checks policy owner and core.
     function totalXP(address wallet) external view returns(uint64) {
+        if(paused) revert Paused();
         IPIEForVerifiedXP.Identity memory identity=pie.getIdentity(wallet);
         if(!identity.exists) return 0;
         return identity.xp+validEarnedXP[wallet];

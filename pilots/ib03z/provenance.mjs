@@ -41,6 +41,7 @@ export async function verifySources(clients){
   const code=await Promise.all(clients.map(c=>c("eth_getCode",[contract.address,pin])));
   if(code.some(v=>!/^0x(?:[0-9a-fA-F]{2})*$/.test(v)))fail("INVALID_BYTECODE_"+contract.name);
   if(code[0].toLowerCase()!==code[1].toLowerCase())fail("BYTECODE_DISAGREEMENT_"+contract.name);
+  if(contract.name==="PIECore_LEGACY_NOT_V04"&&code[0].length<=2)fail("LEGACY_PIECORE_EMPTY_RUNTIME");
   rows.push({name:contract.name,address:contract.address,
    sourceVerifiedOnEtherscan:contract.sourceVerified,
    hasRuntime:code[0].length>2,runtimeBytes:(code[0].length-2)/2,
@@ -55,6 +56,7 @@ if(process.argv[1]&&import.meta.url.endsWith(process.argv[1].split("/").at(-1)))
  try{
   Object.assign(evidence,await verifySources(endpoints.map(url=>createRpc(url))));
   console.log("IB03Z_TWO_PROVIDER_RPC_AGREEMENT_PASS_NON_CONSENSUS");
+  console.log("IB03Z_PUBLIC_PROVENANCE",JSON.stringify({blockNumber:evidence.blockNumber,blockHash:evidence.blockHash,contracts:evidence.contracts}));
  }catch(e){evidence.error=String(e.message||e).slice(0,150);console.error(evidence.error);process.exitCode=1}
  writeFileSync(process.env.IB03Z_REPORT||"ib03z-evidence.json",JSON.stringify(evidence,null,2)+"\n");
 }

@@ -33,7 +33,7 @@ export function createSiweAttestedAdmission({loadChallenge,redeem,signMac,clock,
    return (await redeem({...fields,mac}))===true
      ?Object.freeze({status:"LAB_SESSION_ISSUED",nonProduction:true})
      :deny("DATABASE_DENIED");
-  }catch{return deny("ADMISSION_UNAVAILABLE")}
+  }catch(e){if(process.env.CI)console.error("IB03M_STAGE_ERROR",e instanceof Error?e.message.slice(0,160):"NON_ERROR");return deny("ADMISSION_UNAVAILABLE")}
  }});
 }
 export function canonicalMacBody(v){

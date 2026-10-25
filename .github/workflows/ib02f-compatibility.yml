@@ -1,0 +1,50 @@
+name: IB-02F V04 ABI and storage compatibility gate
+on:
+  pull_request:
+    paths:
+      - 'contracts/XPPolicyV04.sol'
+      - 'tests/ib02f-abi-storage-gate.mjs'
+      - 'tests/baselines/XPPolicyV04.ib02f-original.sol'
+      - '.github/workflows/ib02f-compatibility.yml'
+      - 'package-lock.json'
+      - 'package.json'
+permissions:
+  contents: read
+jobs:
+  compiler-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: cookr
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: elanmust-GFLOer/gflo-pie
+          ref: dbd02d3f1ffd31abff3bda9caaa9852ee7cecf5c
+          path: gflo-pie
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Verify exact PIE consumer sources
+        working-directory: gflo-pie
+        run: |
+          set -euo pipefail
+          printf '%s\n' \
+            'c2442cda19e133417e38ff8b01e27c4ab73b3c2d contracts/PIECoreIgnitionV01.sol' \
+            'd5d62c48db396aa39d6f1d481d6f27f36422cfe2 contracts/TrustedXPSourceRegistryV02.sol' \
+            'd9015e7defe1aed3fab05eb88647693ccb1c8f41 contracts/GFLOIgnitionV01.sol' \
+            'e10a4ae3a907b0f059e9b57f09b7b29dbb12eac3 contracts/EffectiveTierGateV01.sol' |
+            while read -r expected file; do
+              test "$(git hash-object "$file")" = "$expected"
+            done
+      - name: Install exact npm lock
+        working-directory: cookr
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Compile baseline and candidate and check FULL storage members and consumer ABI
+        working-directory: cookr
+        env:
+          GFLO_PIE_ROOT: ${{ github.workspace }}/gflo-pie
+        run: node tests/ib02f-abi-storage-gate.mjs

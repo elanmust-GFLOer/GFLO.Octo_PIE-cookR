@@ -53,7 +53,7 @@ export async function verifySources(clients){
 if(process.argv[1]&&import.meta.url.endsWith(process.argv[1].split("/").at(-1))){
  const evidence={status:"BLOCK",checkedAt:new Date().toISOString(),source:"IB03Z live RPC",providers:["RPC_A","RPC_B"]};
  try{
-  Object.assign(evidence,await verifySources(endpoints.map(createRpc)));
+  Object.assign(evidence,await verifySources(endpoints.map(url=>createRpc(url))));
   console.log("IB03Z_TWO_PROVIDER_RPC_AGREEMENT_PASS_NON_CONSENSUS");
  }catch(e){evidence.error=String(e.message||e).slice(0,150);console.error(evidence.error);process.exitCode=1}
  writeFileSync(process.env.IB03Z_REPORT||"ib03z-evidence.json",JSON.stringify(evidence,null,2)+"\n");

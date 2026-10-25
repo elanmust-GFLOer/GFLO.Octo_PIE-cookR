@@ -3,7 +3,7 @@
 set -euo pipefail
 REPO="https://github.com/elanmust-GFLOer/GFLO.Octo_PIE-cookR.git"
 HARNESS="1ea68bc5b796901e5f652b6580c0584236ba2c5f"
-BRANCH_COMMIT="__PIN_THIS_TO_IB03W_FINAL_HEAD_AFTER_CI__"
+BRANCH_COMMIT="75cbffeef085926143fca3043329567cc0327a59"
 # Requires git, Node >=22, Python >=3, sha256sum, npm, and git network access.
 # Never run in an existing project directory; prepare two temporary dirs.
 mkdir -p "$HOME/gflo-ib03w-repro"

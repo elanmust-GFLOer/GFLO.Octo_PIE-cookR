@@ -4,8 +4,6 @@ on:
     paths:
       - 'pilots/ib03d/**'
       - '.github/workflows/ib03d1-siwe.yml'
-      - 'package.json'
-      - 'package-lock.json'
   push:
     branches: ['feature/ib03b-octopass-reader-isolated-20261025']
     paths:
@@ -18,19 +16,32 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Checkout candidate test sources
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           path: cookr
+          persist-credentials: false
+      - name: Checkout immutable existing pinned npm harness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: elanmust-GFLOer/GFLO.Octo_PIE-cookR
+          ref: 1ea68bc5b796901e5f652b6580c0584236ba2c5f
+          path: harness
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
-      - name: Use pinned dependency lock from isolated EVM harness
-        working-directory: cookr
+      - name: Verify pinned dependency input
+        working-directory: harness
         run: |
           set -euo pipefail
-          test -f package-lock.json
+          test "$(git rev-parse HEAD)" = "1ea68bc5b796901e5f652b6580c0584236ba2c5f"
+          test "$(git hash-object package-lock.json)" = "61e8a5ede9ad9031fdc58424cefb0fc442e3d9b3"
           npm ci --ignore-scripts --no-audit --no-fund
-      - name: Execute SIWE EOA cryptographic and ERC1271 mocked-boundary tests
-        working-directory: cookr
-        run: node --test pilots/ib03d/siwe-core.test.mjs
+      - name: Execute candidate tests against pinned harness dependencies
+        run: |
+          set -euo pipefail
+          mkdir -p harness/pilots/ib03d
+          cp cookr/pilots/ib03d/siwe-core.mjs cookr/pilots/ib03d/siwe-core.test.mjs harness/pilots/ib03d/
+          cd harness
+          node --test pilots/ib03d/siwe-core.test.mjs

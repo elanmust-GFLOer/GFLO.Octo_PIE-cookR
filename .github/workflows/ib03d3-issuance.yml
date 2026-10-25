@@ -1,0 +1,30 @@
+name: IB-03D3 session issuance and revocation race (disposable)
+on:
+  pull_request:
+    paths: ['pilots/ib03d/issuance-fence.sql','pilots/ib03d/issuance-fence.test.sh','.github/workflows/ib03d3-issuance.yml']
+  push:
+    branches: ['feature/ib03b-octopass-reader-isolated-20261025']
+    paths: ['pilots/ib03d/issuance-fence.sql','pilots/ib03d/issuance-fence.test.sh','.github/workflows/ib03d3-issuance.yml']
+permissions: {contents: read}
+jobs:
+  issuance-race:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_PASSWORD: test_only_password, POSTGRES_USER: gflo_test, POSTGRES_DB: gflo_test}
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U gflo_test -d gflo_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env: {PGHOST: localhost, PGPORT: '5432', PGUSER: gflo_test, PGPASSWORD: test_only_password, PGDATABASE: gflo_test}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+      - run: bash pilots/ib03d/issuance-fence.test.sh

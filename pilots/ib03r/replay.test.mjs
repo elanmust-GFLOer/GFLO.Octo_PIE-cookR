@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {spawnSync} from "node:child_process";
+import {spawn,spawnSync} from "node:child_process";
 import {generateKeyPairSync,sign,verify,randomBytes} from "node:crypto";
 import {canonicalRequest} from "../ib03q/request-auth.mjs";
 const q=x=>"'"+String(x).replaceAll("'","''")+"'";
@@ -26,9 +26,19 @@ function validate(e){
 assert.equal(validate({...signed,nonce:randomBytes(16).toString("hex")}),false);
 console.log("PASS altered signed nonce rejected before shared DB claim");
 const cmd="SELECT ib03r.claim_authenticated_request("+q(kid)+",1,"+q(signed.nonce)+","+signed.expiresAt+")";
-const kids=Array.from({length:8},()=>spawnSync("psql",["-X","-Atq","-v","ON_ERROR_STOP=1","-c",cmd],{
- encoding:"utf8",env:{...process.env,PGHOST:"127.0.0.1",PGDATABASE:"gflo_test",PGPORT:"5432",PGUSER:"gflo_issuer_replay_lab",PGPASSWORD:"lab-replay-only"}}));
-assert.equal(kids.filter(x=>x.status===0&&x.stdout.trim()==="t").length,1);
+const attempt=()=>new Promise((resolve,reject)=>{
+ const child=spawn("psql",["-X","-Atq","-v","ON_ERROR_STOP=1","-c",cmd],{
+ env:{...process.env,PGHOST:"127.0.0.1",PGDATABASE:"gflo_test",PGPORT:"5432",
+ PGUSER:"gflo_issuer_replay_lab",PGPASSWORD:"lab-replay-only"}});
+ let stdout="",stderr="";
+ child.stdout.on("data",b=>stdout+=b);
+ child.stderr.on("data",b=>stderr+=b);
+ child.on("error",reject);
+ child.on("close",code=>code===0?resolve(stdout.trim()):reject(Error(stderr.slice(0,120))));
+});
+const attempts=await Promise.all(Array.from({length:8},attempt));
+assert.equal(attempts.filter(x=>x==="t").length,1);
+assert.equal(attempts.filter(x=>x==="f").length,7);
 assert.equal(validate(signed),false);
 console.log("PASS shared nonce consumed once among 8 independent PostgreSQL clients");
 const second={...signed,nonce:randomBytes(16).toString("hex")};

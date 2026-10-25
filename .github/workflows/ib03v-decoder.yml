@@ -1,0 +1,20 @@
+name: IB-03V Decoder and Downgrade Migration Gate
+on:
+  pull_request:
+    paths: ['pilots/ib03v/**','.github/workflows/ib03v-decoder.yml']
+  push:
+    branches: ['feature/ib03b-octopass-reader-isolated-20261025']
+    paths: ['pilots/ib03v/**','.github/workflows/ib03v-decoder.yml']
+permissions: {contents: read}
+jobs:
+  strict-decoder:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: node pilots/ib03v/decoder.test.mjs
+      - run: node pilots/ib03u/conformance.test.mjs
+      - run: python3 pilots/ib03u/independent.py

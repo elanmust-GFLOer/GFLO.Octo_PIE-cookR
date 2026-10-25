@@ -44,20 +44,18 @@ const admission=createSiweAttestedAdmission({
  signMac:async fields=>{signCalls++;return macSigner(fields)},
  clock:serverClock,policy
 });
-const valid=await fixture(nonce("GFLO_M_1_"));
+const valid=await fixture(nonce("GFLOM1"));
 const request=(fixture,s)=>({message:fixture.message,signature:fixture.signature,subject,sessionId:s});
 const forged=await evil.signMessage(valid.message);
 assert.equal((await admission.admit({...request(valid,"SESSION_IB03M_00001"),signature:forged})).status,"DENIED");
 assert.equal(signCalls,0);
 assert.equal(admin("SELECT consumed_at IS NULL FROM ib03d2.challenges WHERE id="+pw(valid.nonce)),"t");
 console.log("PASS bad real EOA signature never reaches MAC signer or consumes nonce");
-const validResult=await admission.admit(request(valid,"SESSION_IB03M_00001"));
-console.log("DIAGNOSTIC_VALID",validResult.status,validResult.reason??"NONE","SIGN_CALLS",signCalls);
-assert.equal(validResult.status,"LAB_SESSION_ISSUED");
+assert.equal((await admission.admit(request(valid,"SESSION_IB03M_00001"))).status,"LAB_SESSION_ISSUED");
 assert.equal((await admission.admit(request(valid,"SESSION_IB03M_00001"))).status,"DENIED");
 assert.equal(admin("SELECT count(*) FROM ib03d2.sessions"),"1");
 console.log("PASS real EIP191 -> HMAC issuer -> DB-native MAC -> atomic session and replay DENY");
-const second=await fixture(nonce("GFLO_M_2_"));
+const second=await fixture(nonce("GFLOM2"));
 assert.equal((await admission.admit({...request(second,"SESSION_IB03M_00002"),subject:"bob"})).status,"DENIED");
 const swapped=second.message.replace("Chain ID: 11155111","Chain ID: 1");
 assert.equal((await admission.admit({...request(second,"SESSION_IB03M_00002"),message:swapped})).status,"DENIED");

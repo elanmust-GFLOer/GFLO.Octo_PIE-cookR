@@ -17,7 +17,7 @@ wait
 eq "$(grep -l '^t$' "$tmp/"* | wc -l | tr -d ' ')" 1 "parallel session issue: one winner"
 eq "$(q "SELECT count(*) FROM ib03d2.sessions;")" 1 "only one session stored"
 eq "$(q "SELECT count(*) FROM ib03d2.challenges WHERE consumed_at IS NOT NULL;")" 1 "nonce consumed once"
-eq "$(q "$call,'SESSION_1234567890_REPLAY',1,1,600;")" f "nonce replay denied"
+eq "$(q "$call,'SESSION_1234567890_REPLAY',1,1,600);")" f "nonce replay denied"
 q "INSERT INTO ib03d2.challenges VALUES('c2','alice','wallet-A',11155111,'example.test',now()+interval '5 minutes',NULL,'digest-B');" >/dev/null
 eq "$(q "SELECT ib03d2.issue_verified_session('c2','alice',11155111,'wallet-A','WRONG','SESSION_1234567890_BAD',1,1,600);")" f "mismatched digest denied"
 eq "$(q "SELECT consumed_at IS NULL FROM ib03d2.challenges WHERE id='c2';")" t "failed session did not consume nonce"

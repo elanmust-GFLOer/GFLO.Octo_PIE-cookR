@@ -1,0 +1,85 @@
+{
+  "schema": "gflo.ib03d4.identity-evidence.v1",
+  "asOf": "2026-10-25",
+  "scope": "canonical laboratory evidence closure only",
+  "repository": "elanmust-GFLOer/GFLO.Octo_PIE-cookR",
+  "pr": 20,
+  "base": "05ecb3bbcc9696e0847e7daa3da2a0aeafbe5cbb",
+  "candidateHead": "fd00e60392a7cab2b6d550cf94c2fae7595cb437",
+  "gateStatus": "LAB_EVIDENCE_CLOSED",
+  "productionRelease": "BLOCK",
+  "inputs": [
+    {
+      "path": "pilots/ib03d/siwe-core.mjs",
+      "blob": "944f2d75eb9cc6e6e4bb5010b13c86c317ebc5ca",
+      "gate": "D1"
+    },
+    {
+      "path": "pilots/ib03d/siwe-core.test.mjs",
+      "blob": "b3ea48005eb23b87da93396d3fac80bc8cba0913",
+      "gate": "D1"
+    },
+    {
+      "path": "pilots/ib03d/ledger.sql",
+      "blob": "8ad9e37f84c9b43feea93367c837749579a0e7d5",
+      "gate": "D2"
+    },
+    {
+      "path": "pilots/ib03d/ledger.test.sh",
+      "blob": "f41b3b9eba089e2f49dedd4cd2531d6f3843b439",
+      "gate": "D2"
+    },
+    {
+      "path": "pilots/ib03d/issuance-fence.sql",
+      "blob": "e12cf72167f4170f83b007ab5cad71ea95735e4d",
+      "gate": "D3"
+    },
+    {
+      "path": "pilots/ib03d/issuance-fence.test.sh",
+      "blob": "0177b256bc772410842b4ff6d261484802c87408",
+      "gate": "D3"
+    }
+  ],
+  "evidence": [
+    {
+      "gate": "D1",
+      "run": 40202508910,
+      "head": "2b3e6bc25c3219481015cdd19076a345fa9f1829",
+      "conclusion": "success",
+      "type": "EIP-191 EOA cryptography plus synthetic ERC-1271 port",
+      "tests": 15,
+      "limitations": "ERC-1271 mocked, constrained SIWE parser"
+    },
+    {
+      "gate": "D2",
+      "run": 40203025745,
+      "head": "51fb89aed883de3892fa5553c29a993ecf14f94e",
+      "conclusion": "success",
+      "type": "disposable PostgreSQL nonce and consent ledger",
+      "limitations": "nonce consumption separate from session issuance; laboratory DB"
+    },
+    {
+      "gate": "D3",
+      "run": 40205286423,
+      "head": "fd00e60392a7cab2b6d550cf94c2fae7595cb437",
+      "conclusion": "success",
+      "type": "disposable PostgreSQL atomic session issuance and consent revocation fence",
+      "limitations": "crypto precondition not cryptographically bound to SQL request; no global atomic response disclosure"
+    }
+  ],
+  "trustBoundary": {
+    "verifier": "D1 returns CRYPTO_VERIFIED_ONLY, never session",
+    "session": "D3 SQL consumes nonce and creates session atomically only after caller-supplied proof digest; caller authenticity not demonstrated",
+    "reader": "IB-03B/C mock/injected boundaries, not deployed"
+  },
+  "blockers": [
+    "Full EIP-4361 ABNF, domain-origin and URI conformance",
+    "Live ERC-1271 EVM validation at trusted finalized chain state",
+    "Cryptographic D1 proof to D3 transactional nonce authorization binding / unforgeable backend identity",
+    "Production database least privilege, RLS, tenant isolation, role grants and migration strategy",
+    "End-to-end atomic revocation fencing at response disclosure across service replicas",
+    "Deployment provenance, real RPC provider and chain-finality proof",
+    "OctoPass/Lovable real deployment and consent UX verified separately",
+    "Independent red team, load tests, rollback/runbooks and stakeholder policy approvals"
+  ]
+}

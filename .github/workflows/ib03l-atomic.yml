@@ -1,0 +1,44 @@
+name: IB-03L Atomic Proof Gate (disposable)
+on:
+  pull_request:
+    paths: ['pilots/ib03l/**','.github/workflows/ib03l-atomic.yml']
+  push:
+    branches: ['feature/ib03b-octopass-reader-isolated-20261025']
+    paths: ['pilots/ib03l/**','.github/workflows/ib03l-atomic.yml']
+permissions: {contents: read}
+jobs:
+  atomic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_PASSWORD: test_only_password,POSTGRES_USER: gflo_test,POSTGRES_DB: gflo_test}
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U gflo_test -d gflo_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env: {PGHOST: '127.0.0.1',PGPORT: '5432',PGUSER: gflo_test,PGPASSWORD: test_only_password,PGDATABASE: gflo_test}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+      - name: Initialize isolated baseline
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -f pilots/ib03d/ledger.sql
+          psql -v ON_ERROR_STOP=1 -f pilots/ib03d/issuance-fence.sql
+          psql -v ON_ERROR_STOP=1 -f pilots/ib03f/roles.sql
+          psql -v ON_ERROR_STOP=1 -f pilots/ib03g/role-split.sql
+          psql -v ON_ERROR_STOP=1 -f pilots/ib03h/attestation.sql
+          psql -v ON_ERROR_STOP=1 -f pilots/ib03j/asymmetric-receipt.sql
+          psql -v ON_ERROR_STOP=1 -f pilots/ib03k/enforcement.sql
+          psql -v ON_ERROR_STOP=1 -f pilots/ib03l/atomic.sql
+      - name: Enforcer compromise attack tests
+        run: node pilots/ib03l/atomic.test.mjs

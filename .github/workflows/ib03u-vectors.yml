@@ -1,0 +1,21 @@
+name: IB-03U Canonical Binary Envelope and Independent Vectors
+on:
+  pull_request:
+    paths: ['pilots/ib03u/**','.github/workflows/ib03u-vectors.yml']
+  push:
+    branches: ['feature/ib03b-octopass-reader-isolated-20261025']
+    paths: ['pilots/ib03u/**','.github/workflows/ib03u-vectors.yml']
+permissions: {contents: read}
+jobs:
+  deterministic-crypto:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - name: Node exact preimages and negative mutations
+        run: node pilots/ib03u/conformance.test.mjs
+      - name: Independent Python 3 and OpenSSL Ed25519 check
+        run: python3 pilots/ib03u/independent.py

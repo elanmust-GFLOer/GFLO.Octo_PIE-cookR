@@ -1,0 +1,36 @@
+name: IB-03D1 verifiable SIWE core (non-session lab)
+on:
+  pull_request:
+    paths:
+      - 'pilots/ib03d/**'
+      - '.github/workflows/ib03d1-siwe.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches: ['feature/ib03b-octopass-reader-isolated-20261025']
+    paths:
+      - 'pilots/ib03d/**'
+      - '.github/workflows/ib03d1-siwe.yml'
+permissions:
+  contents: read
+jobs:
+  siwe-cryptography:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: cookr
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Use pinned dependency lock from isolated EVM harness
+        working-directory: cookr
+        run: |
+          set -euo pipefail
+          test -f package-lock.json
+          npm ci --ignore-scripts --no-audit --no-fund
+      - name: Execute SIWE EOA cryptographic and ERC1271 mocked-boundary tests
+        working-directory: cookr
+        run: node --test pilots/ib03d/siwe-core.test.mjs

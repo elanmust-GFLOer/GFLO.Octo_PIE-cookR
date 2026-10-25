@@ -1,0 +1,21 @@
+import {test} from "node:test";
+import assert from "node:assert/strict";
+import {createCustodyLab,createPublicOnlyAdmission,canonicalAttestationPayload} from "./custody.mjs";
+const time=1792920000n,expiry=(time+90n).toString();
+const payload={challengeId:"GFLO_CHALLENGE_X",subject:"alice",chainId:"11155111",wallet:"0x"+"ab".repeat(20),
+ digest:"a".repeat(64),sessionId:"SESSION_IB03I_LAB_0001",bindingGeneration:"1",consentGeneration:"1",expiresAt:expiry,audience:"gflo-octopass-lab"};
+const setup=()=>{const h=createCustodyLab();h.create("kid1");const admission=createPublicOnlyAdmission({trustedKeys:h.publicKeys(),clock:()=>time,audience:payload.audience});
+ const signature=h.sign({keyId:"kid1",payload:canonicalAttestationPayload(payload)});return {h,admission,att:{keyId:"kid1",signature,payload}}};
+test("Ed25519 authentic signature verifies with public key only",async()=>{const x=setup();assert.equal((await x.admission.validate(x.att)).status,"LAB_CRYPTO_ATTESTED")});
+test("wrong wallet rejected",async()=>{const x=setup();assert.equal((await x.admission.validate({...x.att,payload:{...payload,wallet:"0x"+"cd".repeat(20)}})).ok,false)});
+test("wrong consent generation rejected",async()=>{const x=setup();assert.equal((await x.admission.validate({...x.att,payload:{...payload,consentGeneration:"2"}})).ok,false)});
+test("wrong audience rejected",async()=>{const x=setup();assert.equal((await x.admission.validate({...x.att,payload:{...payload,audience:"other"}})).ok,false)});
+test("signature from unknown key denied",async()=>{const x=setup();assert.equal((await x.admission.validate({...x.att,keyId:"kid2"})).reason,"UNKNOWN_KEY")});
+test("key compromise incident revocation denies after trust refresh",async()=>{const x=setup();x.h.revoke("kid1");const fresh=createPublicOnlyAdmission({trustedKeys:x.h.publicKeys(),clock:()=>time,audience:payload.audience});assert.equal((await fresh.validate(x.att)).reason,"REVOKED_KEY")});
+test("rotation accepts new key and retired key only if still active",async()=>{const x=setup();x.h.create("kid2");x.h.revoke("kid1");
+ const n={...x.att,keyId:"kid2",signature:x.h.sign({keyId:"kid2",payload:canonicalAttestationPayload(payload)})};
+ const admission=createPublicOnlyAdmission({trustedKeys:x.h.publicKeys(),clock:()=>time,audience:payload.audience});
+ assert.equal((await admission.validate(n)).ok,true);assert.equal((await admission.validate(x.att)).ok,false)});
+test("signing with revoked key fails",()=>{const x=setup();x.h.revoke("kid1");assert.throws(()=>x.h.sign({keyId:"kid1",payload:canonicalAttestationPayload(payload)}))});
+test("expired attestation denied",async()=>{const x=setup();const a=createPublicOnlyAdmission({trustedKeys:x.h.publicKeys(),clock:()=>time+91n,audience:payload.audience});assert.equal((await a.validate(x.att)).reason,"EXPIRED")});
+test("no private key is present in public trust records",()=>{const x=setup();const records=JSON.stringify(x.h.publicKeys());assert.ok(!records.includes("PRIVATE KEY"));assert.ok(records.includes("PUBLIC KEY"))});

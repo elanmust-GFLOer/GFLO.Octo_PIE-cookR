@@ -24,7 +24,7 @@ jobs:
       - run: |
           set -euo pipefail
           mkdir -p harness/pilots/ib03x harness/pilots/ib03z-r1c
-          cp cookr/pilots/ib03x/pinned.mjs harness/pilots/ib03x/
+          cp cookr/pilots/ib03x/pinned*.mjs harness/pilots/ib03x/
           cp cookr/pilots/ib03z-r1c/*.mjs harness/pilots/ib03z-r1c/
           cd harness
           node pilots/ib03z-r1c/attack.test.mjs

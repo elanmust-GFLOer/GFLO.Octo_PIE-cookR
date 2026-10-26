@@ -1,0 +1,18 @@
+name: E1-A OctoPass ID Entity Gateway Contract (isolated)
+on:
+  push:
+    branches: ['feature/ib03b-octopass-reader-isolated-20261025']
+    paths: ['pilots/e1a/**','.github/workflows/e1a-id-entity.yml']
+  pull_request:
+    paths: ['pilots/e1a/**','.github/workflows/e1a-id-entity.yml']
+permissions: {contents: read}
+jobs:
+  contract-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: node --test pilots/e1a/gateway.test.mjs

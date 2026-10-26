@@ -6,7 +6,7 @@ export function pinnedVerifier({rpc,wallet,blockHash,codeHash}){
  const target=getAddress(wallet);
  return async({wallet:requested,chainId,digest,signature})=>{
   try{
-   if(getAddress(requested)!==target||chainId!=="11155111"||!hex32(digest)||!/^0x[0-9a-fA-F]{130}$/.test(signature))return false;
+   if(getAddress(requested)!==target||chainId!=="11155111"||!hex32(digest)||!/^0x(?:[0-9a-fA-F]{2})*$/.test(signature)||signature.length>8194)return false;
    if((await rpc("eth_chainId",[])).toLowerCase()!=="0xaa36a7")return false;
    const block=await rpc("eth_getBlockByHash",[blockHash,false]);
    const finalized=await rpc("eth_getBlockByNumber",["finalized",false]);

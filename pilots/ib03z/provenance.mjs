@@ -4,9 +4,9 @@ import {keccak256} from "ethers";
 import {writeFileSync} from "node:fs";
 const endpoints=[process.env.IB03Z_RPC_A||"https://ethereum-sepolia-rpc.publicnode.com",process.env.IB03Z_RPC_B||"https://sepolia.drpc.org"];
 const contracts=[
- {name:"PIECore_LEGACY_NOT_V04",address:"0x9CF55d0b9D61Dc28EF3cb10765CF4b861Cd0991e",sourceVerified:true},
- {name:"GFLOIgnition_UNVERIFIED",address:"0x414DEDcf9264614Fd087BDa58bE27a0B698CcC54",sourceVerified:false},
- {name:"GFLOToken_UNVERIFIED",address:"0x563b2e3b499818a2f84c472efb3169a2667807fe",sourceVerified:false}
+ {name:"PIECore_LEGACY_NOT_V04",address:"0x9CF55d0b9D61Dc28EF3cb10765CF4b861Cd0991e"},
+ {name:"GFLOIgnition_UNVERIFIED",address:"0x414DEDcf9264614Fd087BDa58bE27a0B698CcC54"},
+ {name:"GFLOToken_UNVERIFIED",address:"0x563b2e3b499818a2f84c472efb3169a2667807fe"}
 ];
 export function createRpc(url,request=fetch){
  let id=0;
@@ -17,7 +17,7 @@ export function createRpc(url,request=fetch){
     body:JSON.stringify({jsonrpc:"2.0",id:++id,method,params}),signal:ctl.signal});
    if(!resp.ok)throw Error("RPC_HTTP_"+resp.status);
    const d=await resp.json();
-   if(d.error||!Object.hasOwn(d,"result")||d.result===null)throw Error("RPC_NO_RESULT_"+method);
+   if(!d||typeof d!=="object"||Array.isArray(d)||d.jsonrpc!=="2.0"||d.id!==id||d.error||!Object.hasOwn(d,"result")||d.result===null)throw Error("RPC_RESPONSE_INVALID_"+method);
    return d.result;
   }finally{clearTimeout(timer)}
  };
@@ -58,9 +58,9 @@ export async function verifySources(clients){
   const code=await Promise.all(clients.map(c=>c("eth_getCode",[contract.address,pin])));
   if(code.some(v=>!/^0x(?:[0-9a-fA-F]{2})*$/.test(v)))fail("INVALID_BYTECODE_"+contract.name);
   if(code[0].toLowerCase()!==code[1].toLowerCase())fail("BYTECODE_DISAGREEMENT_"+contract.name);
-  if(contract.name==="PIECore_LEGACY_NOT_V04"&&code[0].length<=2)fail("LEGACY_PIECORE_EMPTY_RUNTIME");
+  if(code[0].length<=2)fail("EMPTY_RUNTIME_"+contract.name);
   rows.push({name:contract.name,address:contract.address,
-   sourceVerifiedOnEtherscan:contract.sourceVerified,
+   sourceVerification:"NOT_ESTABLISHED_BY_RPC",
    hasRuntime:code[0].length>2,runtimeBytes:(code[0].length-2)/2,
    codeHash:keccak256(code[0]),codeHashAgreement:true});
  }

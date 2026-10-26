@@ -1,0 +1,3 @@
+# IB-03Z-R1D — F-06/F-07
+
+Lab only. A matching runtime does not prove Etherscan source verification; report sourceVerification=NOT_ESTABLISHED_BY_RPC. Every monitored address must have non-empty runtime. Strict JSON-RPC 2.0 response version/id/result required. Adapter maps pinnedVerifier boolean to IB03D verifyAtBlock contract with explicit provider-asserted assurance, not independent consensus. Mock adapters never authenticate arbitrary RPC providers or authorize sessions. Separate Etherscan source/ABI to bytecode matching is NOT performed. Production BLOCK.

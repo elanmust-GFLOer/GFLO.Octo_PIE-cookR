@@ -69,8 +69,9 @@ async function tx(pk,nonce,data,to){
 }
 async function deploy(contractName,initial,nonce){
  const a=contracts[contractName],iface=new Interface(a.abi);
- const d=await tx(deployPk,nonce,'0x'+a.evm.bytecode.object+iface.encodeDeploy([initial]).slice(2));
- return {status:Number(d.receipt.status),address:getCreateAddress({from:deployer.toString(),nonce}),iface};
+ const chainNonce=(await vm.stateManager.getAccount(deployer)).nonce;
+ const d=await tx(deployPk,chainNonce,'0x'+a.evm.bytecode.object+iface.encodeDeploy([initial]).slice(2));
+ return {status:Number(d.receipt.status),address:getCreateAddress({from:deployer.toString(),nonce:chainNonce}),iface};
 }
 async function invoke(x,method,args=[]){
  const response=await vm.evm.runCall({caller:deployer,to:createAddressFromString(x.address),data:hexToBytes(x.iface.encodeFunctionData(method,args)),gasLimit:500000n,isStatic:true});

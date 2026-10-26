@@ -1,0 +1,33 @@
+name: IB-03Z-R1B SIWE ABNF and Loopback Conformance
+on:
+  push:
+    branches: ['feature/ib03b-octopass-reader-isolated-20261025']
+    paths: ['pilots/ib03d/**','pilots/ib03z-r1b/**','.github/workflows/ib03z-r1b-siwe.yml']
+  pull_request:
+    paths: ['pilots/ib03d/**','pilots/ib03z-r1b/**','.github/workflows/ib03z-r1b-siwe.yml']
+permissions: {contents: read}
+jobs:
+  siwe-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {path: cookr,persist-credentials: false}
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {repository: elanmust-GFLOer/GFLO.Octo_PIE-cookR,ref: 1ea68bc5b796901e5f652b6580c0584236ba2c5f,path: harness,persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: |
+          cd harness
+          test "$(git hash-object package-lock.json)" = "61e8a5ede9ad9031fdc58424cefb0fc442e3d9b3"
+          npm ci --ignore-scripts --no-audit --no-fund
+      - run: |
+          set -euo pipefail
+          mkdir -p harness/pilots/ib03d harness/pilots/ib03z-r1b harness/pilots/ib03w
+          cp cookr/pilots/ib03d/siwe*.mjs harness/pilots/ib03d/
+          cp cookr/pilots/ib03z-r1b/*.mjs harness/pilots/ib03z-r1b/
+          cp cookr/pilots/ib03w/local-erc1271.test.mjs harness/pilots/ib03w/
+          cd harness
+          node --test pilots/ib03d/siwe-core.test.mjs
+          node --test pilots/ib03z-r1b/conformance.test.mjs
+          node pilots/ib03w/local-erc1271.test.mjs

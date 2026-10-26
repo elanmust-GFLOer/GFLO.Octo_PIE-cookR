@@ -29,7 +29,7 @@ export function parseSiwe(message){
  if(!h.endsWith(HEADER)||lines[2]!==""||!isAddress(lines[1]??""))throw Error("BAD_HEADER");
  const authority=h.slice(0,-HEADER.length);
  // Optional explicit scheme in first line; reject arbitrary credentials/fragments/paths.
- const matched=/^(?:(https?):\/\/)?([A-Za-z0-9.-]+(?::[0-9]{1,5})?)$/.exec(authority);
+ const matched=/^(?:(https?):\/\/)?((?:[A-Za-z0-9.-]+|\[::1\])(?::[0-9]{1,5})?)$/.exec(authority);
  if(!matched)throw Error("BAD_DOMAIN");
  const scheme=matched[1]??null,domain=matched[2];
  if(domain.includes("..")||domain.startsWith(".")||domain.endsWith("."))throw Error("BAD_DOMAIN");

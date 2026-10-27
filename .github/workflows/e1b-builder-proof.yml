@@ -1,0 +1,36 @@
+name: E1-B Builder Server Proof Isolated PostgreSQL
+on:
+  push:
+    branches: ['feature/ib03b-octopass-reader-isolated-20261025']
+    paths: ['pilots/e1b/**','.github/workflows/e1b-builder-proof.yml']
+  pull_request:
+    paths: ['pilots/e1b/**','.github/workflows/e1b-builder-proof.yml']
+permissions: {contents: read}
+jobs:
+  isolated-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_PASSWORD: isolated,POSTGRES_DB: e1b_lab}
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d e1b_lab"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: isolated
+      PGDATABASE: e1b_lab
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: psql -v ON_ERROR_STOP=1 -f pilots/e1b/schema.sql
+      - run: psql -v ON_ERROR_STOP=1 -f pilots/e1b/attacks.sql
+      - run: node --test pilots/e1a/gateway.test.mjs pilots/e1b/bridge.test.mjs

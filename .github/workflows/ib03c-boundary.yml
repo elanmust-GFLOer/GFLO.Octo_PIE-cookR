@@ -1,0 +1,25 @@
+name: IB-03C Trusted RPC and identity boundary (synthetic)
+on:
+  pull_request:
+    paths:
+      - 'pilots/ib03c/**'
+      - '.github/workflows/ib03c-boundary.yml'
+  push:
+    branches: ['feature/ib03b-octopass-reader-isolated-20261025']
+    paths:
+      - 'pilots/ib03c/**'
+      - '.github/workflows/ib03c-boundary.yml'
+permissions:
+  contents: read
+jobs:
+  boundary-negative:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: node --test pilots/ib03b/octopass-reader.test.mjs pilots/ib03c/trusted-boundaries.test.mjs

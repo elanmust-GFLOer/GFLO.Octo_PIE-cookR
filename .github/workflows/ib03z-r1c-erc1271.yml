@@ -1,0 +1,31 @@
+name: IB-03Z-R1C ERC1271 Generality & Zero Owner Gate
+on:
+  push:
+    branches: ['feature/ib03b-octopass-reader-isolated-20261025']
+    paths: ['pilots/ib03x/pinned.mjs','pilots/ib03z-r1c/**','.github/workflows/ib03z-r1c-erc1271.yml']
+  pull_request:
+    paths: ['pilots/ib03x/pinned.mjs','pilots/ib03z-r1c/**','.github/workflows/ib03z-r1c-erc1271.yml']
+permissions: {contents: read}
+jobs:
+  erc1271-lab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {path: cookr,persist-credentials: false}
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {repository: elanmust-GFLOer/GFLO.Octo_PIE-cookR,ref: 1ea68bc5b796901e5f652b6580c0584236ba2c5f,path: harness,persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: |
+          cd harness
+          test "$(git hash-object package-lock.json)" = "61e8a5ede9ad9031fdc58424cefb0fc442e3d9b3"
+          npm ci --ignore-scripts --no-audit --no-fund
+      - run: |
+          set -euo pipefail
+          mkdir -p harness/pilots/ib03x harness/pilots/ib03z-r1c
+          cp cookr/pilots/ib03x/pinned*.mjs harness/pilots/ib03x/
+          cp cookr/pilots/ib03z-r1c/*.mjs harness/pilots/ib03z-r1c/
+          cd harness
+          node pilots/ib03z-r1c/attack.test.mjs
+          node pilots/ib03x/pinned.test.mjs

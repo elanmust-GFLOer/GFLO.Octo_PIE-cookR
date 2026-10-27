@@ -1,0 +1,26 @@
+name: IB-03B isolated OctoPass reader
+on:
+  pull_request:
+    paths:
+      - 'pilots/ib03b/**'
+      - '.github/workflows/ib03b-isolated-reader.yml'
+  push:
+    branches: ['feature/ib03b-octopass-reader-isolated-20261025']
+    paths:
+      - 'pilots/ib03b/**'
+      - '.github/workflows/ib03b-isolated-reader.yml'
+permissions:
+  contents: read
+jobs:
+  isolated-reader:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Synthetic mock-reader tests
+        run: node --test pilots/ib03b/octopass-reader.test.mjs

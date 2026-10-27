@@ -1,0 +1,42 @@
+name: E1-C Authenticated Review Proof Bridge (isolated)
+on:
+  push:
+    branches: ['feature/ib03b-octopass-reader-isolated-20261025']
+    paths: ['pilots/e1c/**','.github/workflows/e1c-proof-bridge.yml']
+  pull_request:
+    paths: ['pilots/e1c/**','.github/workflows/e1c-proof-bridge.yml']
+permissions: {contents: read}
+jobs:
+  e1c-lab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_PASSWORD: isolated,POSTGRES_DB: e1c_lab}
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d e1c_lab"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: isolated
+      PGDATABASE: e1c_lab
+      E1C_DB_EVENT_PATH: /tmp/e1c-db-event.json
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: psql -v ON_ERROR_STOP=1 -f pilots/e1b/schema.sql
+      - run: psql -v ON_ERROR_STOP=1 -f pilots/e1b/attacks.sql
+      - name: Export actual committed PostgreSQL event (no synthetic JS substitution)
+        run: |
+          set -euo pipefail
+          psql -At -c "SELECT row_to_json(x)::text FROM (SELECT e.*,d.decision FROM e1b.review_events e JOIN e1b.review_decisions d USING(project_id,revision)) x;" > "$E1C_DB_EVENT_PATH"
+          test "$(wc -l < "$E1C_DB_EVENT_PATH")" -eq 1
+      - run: node --test pilots/e1a/gateway.test.mjs pilots/e1b/bridge.test.mjs pilots/e1c/adapter.test.mjs

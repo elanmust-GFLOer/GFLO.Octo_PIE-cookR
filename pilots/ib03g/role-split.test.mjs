@@ -1,0 +1,56 @@
+// IB-03G isolated two-role admission attack-gate; actual EIP-191 EOA verification.
+import {spawnSync} from "node:child_process";
+import {Wallet} from "ethers";
+import {verifySiweCore} from "../ib03d/siwe-core.mjs";
+import {exactMessageSha256} from "../ib03e/admission.mjs";
+import assert from "node:assert/strict";
+const A=new Wallet("0x"+"11".repeat(32)),B=new Wallet("0x"+"22".repeat(32));
+const now=Date.now(),domain="example.test",uri="https://example.test/login",nonce="GFLOnonce1234";
+const msg=[domain+" wants you to sign in with your Ethereum account:",A.address,"","GFLO IB03G disposable proof","",
+"URI: "+uri,"Version: 1","Chain ID: 11155111","Nonce: "+nonce,"Issued At: "+new Date(now-10000).toISOString()].join("\n");
+const digest=exactMessageSha256(msg);
+const lit=x=>"'"+String(x).replaceAll("'","''")+"'";
+const sql=(stmt,role="gflo_admission_lab",password="lab-service-only")=>{
+ const p=spawnSync("psql",["-X","-qAt","-v","ON_ERROR_STOP=1","-c",stmt],{encoding:"utf8",timeout:10000,env:{
+ ...process.env,PGHOST:"127.0.0.1",PGPORT:"5432",PGDATABASE:"gflo_test",PGUSER:role,PGPASSWORD:password}});
+ if(p.status!==0)throw Error("PG_DENIED: "+p.stderr.slice(0,120));return p.stdout.trim();
+};
+const admin=q=>sql(q,"gflo_test","test_only_password");
+const expectDeny=(q,role="gflo_admission_lab",pass="lab-service-only")=>{assert.throws(()=>sql(q,role,pass));};
+admin("INSERT INTO ib03d2.bindings VALUES('alice',11155111,"+lit(A.address)+",'ACTIVE',1)");
+admin("INSERT INTO ib03d2.consents VALUES('alice',11155111,'pie:xp:read',true,now()+interval '10 minutes',1)");
+admin("INSERT INTO ib03d2.challenges VALUES("+lit(nonce)+",'alice',"+lit(A.address)+",11155111,'example.test',now()+interval '10 minutes',NULL,"+lit(digest)+")");
+const bare="SELECT ib03f.issue_session("+[nonce,"alice","11155111",A.address,digest,"SESSION_LEGACY_00000001",1,1,600].map((v,i)=>[2,6,7,8].includes(i)?v:lit(v)).join(",")+")";
+expectDeny(bare);
+console.log("PASS old IB03F direct-issuance bypass revoked");
+const redeem=(session="SESSION_IB03G_00000001",digestValue=digest)=>"SELECT ib03g.redeem_verified_session("+[nonce,"alice","11155111",A.address,digestValue,session,1,1,600].map((v,i)=>[2,6,7,8].includes(i)?v:lit(v)).join(",")+")";
+assert.equal(sql(redeem()),"f");
+console.log("PASS admission without attestation denied");
+const register="SELECT ib03g.register_verification("+[nonce,"alice","11155111",A.address,digest].map((v,i)=>i===2?v:lit(v)).join(",")+")";
+expectDeny(register);
+expectDeny(register,"gflo_browser_lab","lab-browser-only");
+expectDeny("SELECT * FROM ib03g.verified_proofs");
+expectDeny("INSERT INTO ib03g.verified_proofs(challenge_id,subject_id,chain_id,wallet,proof_digest,expires_at) VALUES ('x','x',1,'x','x',now())");
+console.log("PASS admission/browser cannot register attestations or modify proof table");
+const expected={domain,uri,nonce,chainId:"11155111",maxAgeSeconds:300};
+const invalid=await verifySiweCore({message:msg,signature:await B.signMessage(msg),expected,now});
+assert.equal(invalid.ok,false);assert.equal(sql(redeem()),"f");
+const verified=await verifySiweCore({message:msg,signature:await A.signMessage(msg),expected,now});
+assert.equal(verified.ok,true);
+assert.equal(verified.status,"CRYPTO_VERIFIED_ONLY");
+assert.equal(verified.address.toLowerCase(),A.address.toLowerCase());
+assert.equal(verified.nonce,nonce);
+assert.equal(sql(register,"gflo_verifier_lab","lab-verifier-only"),"t");
+assert.equal(sql(register,"gflo_verifier_lab","lab-verifier-only"),"f");
+console.log("PASS only verifier role registered one checked EOA proof");
+assert.equal(sql(redeem("SESSION_IB03G_00000002","bad")),"f");
+assert.equal(sql(redeem()),"t");
+assert.equal(sql(redeem()),"f");
+assert.equal(admin("SELECT count(*) FROM ib03d2.sessions"),"1");
+assert.equal(admin("SELECT consumed_at IS NOT NULL FROM ib03g.verified_proofs WHERE challenge_id="+lit(nonce)),"t");
+console.log("PASS one-time session issuance; forged digest and replay fail closed");
+const status=admin("SELECT ib03d2.revoke_consent('alice',11155111)");
+assert.equal(status,"2");
+assert.equal(admin("SELECT ib03d2.authorize_read('SESSION_IB03G_00000001','pie:xp:read',1,1)"),"f");
+console.log("PASS consent revocation denies old session");
+console.log("IB03G_ROLE_SPLIT_LAB_PASS production=BLOCK");

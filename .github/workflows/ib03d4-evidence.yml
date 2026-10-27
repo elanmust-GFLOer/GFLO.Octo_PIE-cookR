@@ -1,0 +1,24 @@
+name: IB-03D4 Canonical identity evidence closure
+on:
+  pull_request:
+    paths:
+      - 'pilots/ib03d/evidence-manifest.json'
+      - 'pilots/ib03d/evidence-check.mjs'
+      - 'pilots/ib03d/CANONICAL-EVIDENCE.md'
+      - '.github/workflows/ib03d4-evidence.yml'
+      - 'pilots/ib03d/**'
+  push:
+    branches: ['feature/ib03b-octopass-reader-isolated-20261025']
+    paths: ['pilots/ib03d/**','.github/workflows/ib03d4-evidence.yml']
+permissions: {contents: read}
+jobs:
+  immutable-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - name: Recompute Git blob SHA for every canonical evidence input
+        run: node pilots/ib03d/evidence-check.mjs

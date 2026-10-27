@@ -1,0 +1,24 @@
+{
+ "language": "Solidity",
+ "sources": {
+  "contracts/GasFeeLoop.sol": {
+   "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ninterface IERC20 {\n    function transferFrom(address from, address to, uint256 amount) external returns (bool);\n    function transfer(address to, uint256 amount) external returns (bool);\n}\n\ninterface IPIECore {\n    function addXP(address user, uint256 amount) external;\n}\n\ncontract GasFeeLoop {\n    IERC20 public gfloToken;\n    IPIECore public pieCore;\n    address public owner;\n\n    struct StakeInfo {\n        uint256 amount;\n        uint256 timestamp;\n        uint256 accumulatedXP;\n    }\n    mapping(address => StakeInfo) public stakes;\n\n    uint256 public constant EPOCH_DURATION = 7 days;\n    uint256 public constant EPOCH_XP_CAP = 1000 * 10**18;\n    mapping(address => mapping(uint256 => uint256)) public epochXP;\n\n    uint256 public baseXPPerTx = 1 * 10**18;\n    uint256 public constant MAX_MULTIPLIER = 2 * 10**18;\n    uint256 public constant PRECISION = 10**18;\n\n    event Staked(address indexed user, uint256 amount);\n    event Unstaked(address indexed user, uint256 amount);\n    event XPRewarded(address indexed user, uint256 amount);\n\n    modifier onlyOwner() {\n        require(msg.sender == owner, \"Not owner\");\n        _;\n    }\n\n    constructor(address _gfloToken, address _pieCore) {\n        gfloToken = IERC20(_gfloToken);\n        pieCore = IPIECore(_pieCore);\n        owner = msg.sender;\n    }\n\n    function stake(uint256 amount) external {\n        require(amount > 0, \"Amount must be positive\");\n        require(gfloToken.transferFrom(msg.sender, address(this), amount), \"Transfer failed\");\n        stakes[msg.sender].amount += amount;\n        stakes[msg.sender].timestamp = block.timestamp;\n        emit Staked(msg.sender, amount);\n    }\n\n    function unstake(uint256 amount) external {\n        require(amount > 0, \"Amount must be positive\");\n        require(stakes[msg.sender].amount >= amount, \"Insufficient stake\");\n        stakes[msg.sender].amount -= amount;\n        require(gfloToken.transfer(msg.sender, amount), \"Transfer failed\");\n        emit Unstaked(msg.sender, amount);\n    }\n\n    function _sqrt(uint256 x) internal pure returns (uint256) {\n        if (x == 0) return 0;\n        uint256 z = (x + 1) / 2;\n        uint256 y = x;\n        while (z < y) { y = z; z = (x / z + z) / 2; }\n        return y;\n    }\n\n    function _calculateMultiplier(address user) internal view returns (uint256) {\n        uint256 s = stakes[user].amount / PRECISION;\n        if (s == 0) return PRECISION;\n        uint256 m = PRECISION + (_sqrt(s) * PRECISION / 1000);\n        return m > MAX_MULTIPLIER ? MAX_MULTIPLIER : m;\n    }\n\n    function _addXP(address user, uint256 baseAmount) internal {\n        uint256 multiplier = _calculateMultiplier(user);\n        uint256 rawXP = baseAmount * multiplier / PRECISION;\n        uint256 epoch = block.timestamp / EPOCH_DURATION;\n        uint256 used = epochXP[user][epoch];\n        if (used >= EPOCH_XP_CAP) return;\n        uint256 capped = (used + rawXP > EPOCH_XP_CAP) ? EPOCH_XP_CAP - used : rawXP;\n        epochXP[user][epoch] += capped;\n        stakes[user].accumulatedXP += capped;\n        pieCore.addXP(user, capped);\n        emit XPRewarded(user, capped);\n    }\n\n    function rewardXP(address user, uint256 amount) external onlyOwner {\n        _addXP(user, amount);\n    }\n\n    function getStake(address user) external view returns (uint256) {\n        return stakes[user].amount;\n    }\n\n    function getMultiplier(address user) external view returns (uint256) {\n        return _calculateMultiplier(user);\n    }\n\n    function getAccumulatedXP(address user) external view returns (uint256) {\n        return stakes[user].accumulatedXP;\n    }\n}\n"
+  }
+ },
+ "settings": {
+  "optimizer": {
+   "enabled": false,
+   "runs": 200
+  },
+  "outputSelection": {
+   "*": {
+    "*": [
+     "abi",
+     "evm.bytecode",
+     "evm.deployedBytecode",
+     "metadata"
+    ]
+   }
+  }
+ }
+}

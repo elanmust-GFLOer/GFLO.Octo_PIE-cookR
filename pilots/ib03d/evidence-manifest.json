@@ -8,10 +8,21 @@
   "candidateHead": "fd00e60392a7cab2b6d550cf94c2fae7595cb437",
   "gateStatus": "LAB_EVIDENCE_CLOSED",
   "productionRelease": "BLOCK",
+  "rebaseline": [
+    {
+      "date": "2026-10-27",
+      "path": "pilots/ib03d/siwe-core.mjs",
+      "previousBlob": "944f2d75eb9cc6e6e4bb5010b13c86c317ebc5ca",
+      "blob": "20aec4610c19284dd462978654ec7311f36abdd3",
+      "cause": "intentional IB-03Z-R1B strict SIWE change (85fe0fd) now importing siwe-parser.mjs",
+      "revalidation": "D1 workflow re-run on the post-R1B blob; the historical D1 run reference below predates this change and covers only the previous blob",
+      "note": "siwe-parser.mjs is a new D1 dependency not yet pinned as a canonical input"
+    }
+  ],
   "inputs": [
     {
       "path": "pilots/ib03d/siwe-core.mjs",
-      "blob": "944f2d75eb9cc6e6e4bb5010b13c86c317ebc5ca",
+      "blob": "20aec4610c19284dd462978654ec7311f36abdd3",
       "gate": "D1"
     },
     {

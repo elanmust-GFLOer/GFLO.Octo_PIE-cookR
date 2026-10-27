@@ -54,7 +54,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p harness/pilots/ib03d harness/pilots/ib03m harness/pilots/ib03o harness/pilots/ib03p harness/pilots/ib03q
-          cp cookr/pilots/ib03d/siwe-core.mjs harness/pilots/ib03d/
+          cp cookr/pilots/ib03d/siwe-core.mjs cookr/pilots/ib03d/siwe-parser.mjs harness/pilots/ib03d/
           cp cookr/pilots/ib03m/trust-chain.mjs harness/pilots/ib03m/
           cp cookr/pilots/ib03o/admission.mjs harness/pilots/ib03o/
           cp cookr/pilots/ib03p/issuer.mjs harness/pilots/ib03p/

@@ -48,7 +48,7 @@ jobs:
       - name: EOA verifier identity split and hostile admission SQL tests
         run: |
           mkdir -p harness/pilots/ib03d harness/pilots/ib03e harness/pilots/ib03g
-          cp cookr/pilots/ib03d/siwe-core.mjs harness/pilots/ib03d/
+          cp cookr/pilots/ib03d/siwe-core.mjs cookr/pilots/ib03d/siwe-parser.mjs harness/pilots/ib03d/
           cp cookr/pilots/ib03e/admission.mjs harness/pilots/ib03e/
           cp cookr/pilots/ib03g/role-split.test.mjs harness/pilots/ib03g/
           cd harness

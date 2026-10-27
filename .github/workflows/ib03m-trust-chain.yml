@@ -53,7 +53,7 @@ jobs:
       - name: EIP191 signature to PostgreSQL issued session attack test
         run: |
           mkdir -p harness/pilots/ib03d harness/pilots/ib03m
-          cp cookr/pilots/ib03d/siwe-core.mjs harness/pilots/ib03d/
+          cp cookr/pilots/ib03d/siwe-core.mjs cookr/pilots/ib03d/siwe-parser.mjs harness/pilots/ib03d/
           cp cookr/pilots/ib03m/trust-chain.mjs cookr/pilots/ib03m/trust-chain.test.mjs harness/pilots/ib03m/
           cd harness
           node pilots/ib03m/trust-chain.test.mjs

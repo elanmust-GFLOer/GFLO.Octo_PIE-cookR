@@ -48,7 +48,7 @@ jobs:
       - name: Test signed EOA -> restricted PostgreSQL issuance
         run: |
           mkdir -p harness/pilots/ib03d harness/pilots/ib03e harness/pilots/ib03f
-          cp cookr/pilots/ib03d/siwe-core.mjs harness/pilots/ib03d/
+          cp cookr/pilots/ib03d/siwe-core.mjs cookr/pilots/ib03d/siwe-parser.mjs harness/pilots/ib03d/
           cp cookr/pilots/ib03e/admission.mjs harness/pilots/ib03e/
           cp cookr/pilots/ib03f/end-to-end.mjs harness/pilots/ib03f/
           cd harness

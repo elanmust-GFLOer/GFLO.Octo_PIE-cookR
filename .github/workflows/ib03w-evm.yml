@@ -30,7 +30,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p harness/pilots/ib03d harness/pilots/ib03w
-          cp cookr/pilots/ib03d/siwe-core.mjs harness/pilots/ib03d/
+          cp cookr/pilots/ib03d/siwe-core.mjs cookr/pilots/ib03d/siwe-parser.mjs harness/pilots/ib03d/
           cp cookr/pilots/ib03w/local-erc1271.test.mjs harness/pilots/ib03w/
           cd harness
           node pilots/ib03w/local-erc1271.test.mjs

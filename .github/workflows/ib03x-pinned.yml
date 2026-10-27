@@ -30,7 +30,7 @@ jobs:
           mkdir -p harness/pilots/ib03x harness/pilots/ib03w harness/pilots/ib03d
           cp cookr/pilots/ib03x/*.mjs harness/pilots/ib03x/
           cp cookr/pilots/ib03w/local-erc1271.test.mjs harness/pilots/ib03w/
-          cp cookr/pilots/ib03d/siwe-core.mjs harness/pilots/ib03d/
+          cp cookr/pilots/ib03d/siwe-core.mjs cookr/pilots/ib03d/siwe-parser.mjs harness/pilots/ib03d/
           cd harness
           node pilots/ib03x/pinned.test.mjs
           node pilots/ib03w/local-erc1271.test.mjs

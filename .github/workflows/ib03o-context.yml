@@ -55,7 +55,7 @@ jobs:
       - name: Real EOA signature, signer process and atomic context
         run: |
           mkdir -p harness/pilots/ib03d harness/pilots/ib03m harness/pilots/ib03o
-          cp cookr/pilots/ib03d/siwe-core.mjs harness/pilots/ib03d/
+          cp cookr/pilots/ib03d/siwe-core.mjs cookr/pilots/ib03d/siwe-parser.mjs harness/pilots/ib03d/
           cp cookr/pilots/ib03m/trust-chain.mjs harness/pilots/ib03m/
           cp cookr/pilots/ib03o/*.mjs harness/pilots/ib03o/
           cd harness

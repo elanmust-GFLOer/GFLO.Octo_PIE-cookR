@@ -54,7 +54,7 @@ jobs:
       - name: Real EIP191 wallet signature and frozen challenge SQL gate
         run: |
           mkdir -p harness/pilots/ib03d harness/pilots/ib03m harness/pilots/ib03n
-          cp cookr/pilots/ib03d/siwe-core.mjs harness/pilots/ib03d/
+          cp cookr/pilots/ib03d/siwe-core.mjs cookr/pilots/ib03d/siwe-parser.mjs harness/pilots/ib03d/
           cp cookr/pilots/ib03m/trust-chain.mjs harness/pilots/ib03m/
           cp cookr/pilots/ib03n/admission.mjs cookr/pilots/ib03n/admission.test.mjs harness/pilots/ib03n/
           cd harness

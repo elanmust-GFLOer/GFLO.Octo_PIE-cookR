@@ -10,7 +10,7 @@ Independent integration workspace for **OctoPush Collective × OctoPartnR × GFL
 
 ## Sources of truth
 
-- [GFLO PIE](https://github.com/elanmust-GFLOer/gflo-pie), development branch `feature/pie-core-v0.2`: identity, canonical XP, EIP-712-attested and revocable XPPolicyV03, historical tier, dynamic EffectiveTierGate, signed local EVM tests.
+- [GFLO PIE](https://github.com/elanmust-GFLOer/gflo-pie), `main` (the `feature/pie-core-v0.2` line was merged on 2026-11-01; v0.2 is still not deployed to any public network): identity, canonical XP, EIP-712-attested and revocable XPPolicyV03, historical tier, dynamic EffectiveTierGate, signed local EVM tests.
 - [OctoPush / OctoChain Collective](https://lovable.dev/projects/fafc7193-490d-4527-be77-4296369a300b): React/TanStack Start application, OctoPass/Supabase profiles, Builder, feed, Pixel Studio and OctoPartnR.
 - OctoPartnR: Cognitive Semaphore, specialist orchestration, 12-article constitution, decisions and reflection. **Advisory coordinator only**, not autonomous on-chain attestor, jury or payment authority.
 - GFLO Sovereign: proposed participation, incentive and governance experience, not yet a deployed product.

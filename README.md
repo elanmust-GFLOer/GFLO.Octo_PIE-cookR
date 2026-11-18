@@ -1,3 +1,16 @@
+# ⚠️ ARCHIVED — moved to [gflo-pie](https://github.com/elanmust-GFLOer/gflo-pie)
+
+Integration design and RED TEAM 6 archive for OctoPush × OctoPartnR × GFLO PIE. The full content now lives in `gflo-pie/integration/octo-pie/` (imported verbatim, see its PROVENANCE.md).
+
+**Canonical repository:** `elanmust-GFLOer/gflo-pie` (contracts, decisions, tests, integration).
+The live HTTP API stays in `gflo-backend` until its Railway deploy source is moved.
+
+Do not integrate or deploy anything from this repository.
+
+---
+
+_Previous README below, for history._
+
 # GFLO.Octo_PIE-cookR 🐙⚛️🧬
 
 **GFLO Sovereign Integration Reactor — Blueprint v0.1**
